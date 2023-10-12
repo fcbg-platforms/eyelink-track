@@ -26,9 +26,9 @@ dependencies = [
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '
 keywords = [
-  'python',
-  'eyelink',
   'eye-tracker',
+  'eyelink',
+  'python',
 ]
 license = {file = 'LICENSE'}
 maintainers = [
