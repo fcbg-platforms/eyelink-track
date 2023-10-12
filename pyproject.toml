@@ -22,6 +22,7 @@ dependencies = [
   'numpy>=1.21',
   'packaging',
   'psutil',
+  'psychopy @ git+https://github.com/psychopy/psychopy',
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '
 keywords = [
