@@ -23,45 +23,33 @@ dependencies = [
   'packaging',
   'psutil',
 ]
-description = 'Template for python projects.'
+description = 'Standalone eyelink calibration and recording with PsychoPy. '
 keywords = [
   'python',
-  'template',
+  'eyelink',
+  'eye-tracker',
 ]
 license = {file = 'LICENSE'}
 maintainers = [
   {email = 'mathieu.scheltienne@fcbg.ch', name = 'Mathieu Scheltienne'},
 ]
-name = 'template'
+name = 'eyelink_track'
 readme = 'README.md'
 requires-python = '>=3.9'
 version = '0.1.0'
 
 [project.optional-dependencies]
 all = [
-  'template[build]',
-  'template[doc]',
-  'template[style]',
-  'template[test]',
+  'eyelink_track[build]',
+  'eyelink_track[style]',
+  'eyelink_track[test]',
 ]
 build = [
   'build',
   'twine',
 ]
-doc = [
-  'furo',
-  'matplotlib',
-  'memory-profiler',
-  'numpydoc',
-  'sphinx',
-  'sphinx-copybutton',
-  'sphinx-design',
-  'sphinx-gallery',
-  'sphinx-issues',
-  'sphinxcontrib-bibtex',
-]
 full = [
-  'template[all]',
+  'eyelink_track[all]',
 ]
 style = [
   'bibclean',
@@ -79,13 +67,13 @@ test = [
 ]
 
 [project.scripts]
-template-sys_info = 'template.commands.sys_info:run'
+eyelink_track-sys_info = 'eyelink_track.commands.sys_info:run'
 
 [project.urls]
-documentation = 'https://github.com/mscheltienne/template-python'
-homepage = 'https://github.com/mscheltienne/template-python'
-source = 'https://github.com/mscheltienne/template-python'
-tracker = 'https://github.com/mscheltienne/template-python/issues'
+documentation = 'https://github.com/fcbg-hnp-meeg/eyelink-track'
+homepage = 'https://github.com/fcbg-hnp-meeg/eyelink-track'
+source = 'https://github.com/fcbg-hnp-meeg/eyelink-track'
+tracker = 'https://github.com/fcbg-hp-meeg/eyelink-track/issues'
 
 [tool.black]
 extend-exclude = '''
@@ -93,9 +81,6 @@ extend-exclude = '''
       __pycache__
     | .github
     | setup.py
-    | doc/
-    | examples/
-    | tutorials/
 )
 '''
 include = '\.pyi?$'
@@ -115,18 +100,16 @@ branch = true
 cover_pylib = false
 omit = [
   '**/__init__.py',
-  '**/template/_version.py',
-  '**/template/commands/*',
-  '**/template/utils/_fixes.py',
+  '**/eyelink_track/_version.py',
+  '**/eyelink_track/commands/*',
+  '**/eyelink_track/utils/_fixes.py',
   '**/tests/**',
 ]
 
 [tool.isort]
 extend_skip_glob = [
   'doc/*',
-  'examples/*',
   'setup.py',
-  'tutorials/*',
 ]
 line_length = 88
 multi_line_output = 3
@@ -138,7 +121,7 @@ add_ignore = 'D100,D104,D107'
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
 match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^template.*'
+match-dir = '^eyelink_track.*'
 
 [tool.pytest.ini_options]
 addopts = '--durations 20 --junit-xml=junit-results.xml --verbose'
@@ -159,8 +142,8 @@ line-length = 88
 include-package-data = false
 
 [tool.setuptools.packages.find]
-exclude = ['template*tests']
-include = ['template*']
+exclude = ['eyelink_track*tests']
+include = ['eyelink_track*']
 
 [tool.tomlsort]
 all = true
