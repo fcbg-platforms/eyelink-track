@@ -30,5 +30,5 @@ def run():
     eye_link.calibrate()
     eye_link.win.close()
     eye_link.start()
-    input (">>> Press ENTER to stop the recording.")
+    input(">>> Press ENTER to stop the recording.")
     eye_link.stop()
