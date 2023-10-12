@@ -2,7 +2,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-from .eye_link import Eyelink
+from ..eye_link import Eyelink
 
 
 def run():
