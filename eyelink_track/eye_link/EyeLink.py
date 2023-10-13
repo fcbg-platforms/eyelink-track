@@ -9,7 +9,7 @@ from psychopy.event import waitKeys
 from psychopy.visual import TextStim, Window
 
 from ..config.constants import FOREGROUND_COLOR, SCREEN_KWARGS
-from ..utils._checks import check_type, ensure_path
+from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
 
@@ -35,6 +35,8 @@ class Eyelink:
     host_ip : str | None
         IP Address of the computer hosting the eye-tracking device.
         If None, a dummy eye-tracker is created.
+    screen : int | None
+        IDx of the screen to use.
     """
 
     def __init__(
@@ -42,6 +44,7 @@ class Eyelink:
         pname: Union[str, Path] = "./",
         fname: str = "TEST",
         host_ip: Optional[str] = "100.1.1.1",
+        screen: Optional[int] = None,
     ):
         pname = ensure_path(pname, must_exist=False)
         if not pname.exists():
@@ -52,6 +55,10 @@ class Eyelink:
             fname = fname.split(".EDF")[0]
         if 8 < len(fname):
             raise ValueError("The fname should not exceed 8 alphanumeric characters.")
+        if screen is not None:
+            screen = ensure_int(screen, "screen")
+            if screen < 0:
+                raise ValueError("The screen ID should be a 0-index integer.")
         self.edf_fname = fname
 
         # ----------------------------------------------------------------------
@@ -116,6 +123,8 @@ class Eyelink:
         self.el_tracker.sendCommand("button_function 5 'accept_target_fixation'")
 
         # Step 4: set up a graphics environment for calibration
+        if screen is not None:
+            SCREEN_KWARGS["screen"] = screen
         self.win = Window(units="pix", **SCREEN_KWARGS)
 
         # get the native screen resolution used by PsychoPy
@@ -142,12 +151,12 @@ class Eyelink:
         pylink.openGraphicsEx(self.genv)
 
     def clear_screen(self):
-        """clear up the PsychoPy window"""
+        """Clear up the PsychoPy window."""
         self.win.fillColor = self.genv.getBackgroundColor()
         self.win.flip()
 
     def show_msg(self, text, wait_for_keypress=True):
-        """Show task instructions on screen"""
+        """Show task instructions on screen."""
         msg = TextStim(
             self.win,
             text,
@@ -164,6 +173,7 @@ class Eyelink:
             self.clear_screen()
 
     def calibrate(self):
+        """Run the calibration."""
         # Show the task instructions
         task_msg = "\nPress ENTER twice to display tracker menu."
         self.win.winHandle.activate()
@@ -176,10 +186,12 @@ class Eyelink:
             raise
 
     def start(self):
+        """Start recording."""
         self.el_tracker.startRecording(1, 1, 1, 1)
         self.el_tracker.sendMessage("START")
 
     def stop(self):
+        """Stop recording."""
         self.el_tracker.stopRecording()
         self.el_tracker.setOfflineMode()
 

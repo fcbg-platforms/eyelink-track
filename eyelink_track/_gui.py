@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from pyglet.canvas import Display
@@ -19,11 +20,13 @@ from qtpy.QtWidgets import (
 )
 from screeninfo import get_monitors
 
+from .eye_link import Eyelink
+
 
 class GUI(QMainWindow):
     """Main window of the GUI."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setCentralWidget(CentralWidget())
         # tool bar
@@ -55,32 +58,47 @@ class GUI(QMainWindow):
         self.show()
 
     @Slot()
-    def start(self):
+    def start(self) -> None:
         """Start the EyeTracker calibration and recording."""
-        self.statusBar().showMessage("[Recording..]")
         self.findChildren(QAction, name="start")[0].setEnabled(False)
         self.findChildren(QAction, name="stop")[0].setEnabled(True)
         # disable widgets from the central widget
         for widget_type in (QLineEdit, QPushButton, QComboBoxMonitor):
             for widget in self.centralWidget().findChildren(widget_type):
                 widget.setEnabled(False)
+        # retrieve information
+        directory = self.centralWidget().findChildren(DirectoryDialog).path
+        fname = self.centralWidget().findChildren(LineEditFname).text()
+        if len(fname) == 0:
+            fname = datetime.now().strftime("%H%M%S")
+        screen = self.centralWidget().findChildren(QComboBoxMonitor).monitor
+        # start eye-tracker
+        self.eye_link = Eyelink(directory, fname, screen=screen)
+        self.statusBar().showMessage("[Calibrating..]")
+        self.eye_link.calibrate()
+        self.eye_link.win.close()
+        self.statusBar().showMessage("[Recording..]")
+        self.eye_link.start()
 
     @Slot()
-    def stop(self):
+    def stop(self) -> None:
         """Stop the EyeTracker calibration and recording."""
-        self.statusBar().showMessage("[Not recording]")
+        # stop eye-tracker
+        self.statusBar().showMessage("[Stopping and transferring file..]")
+        self.eye_link.stop()
         self.findChildren(QAction, name="start")[0].setEnabled(True)
         self.findChildren(QAction, name="stop")[0].setEnabled(False)
         # enable widgets from the central widget
         for widget_type in (QLineEdit, QPushButton, QComboBoxMonitor):
             for widget in self.centralWidget().findChildren(widget_type):
                 widget.setEnabled(True)
+        self.statusBar().showMessage("[Not recording]")
 
 
 class CentralWidget(QWidget):
     """Main widget arranging the settings."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setObjectName("central_widget")
 
@@ -94,7 +112,7 @@ class CentralWidget(QWidget):
 class DirectoryDialog(QWidget):
     """QFileDialog and QLineEdit to select the recording directory."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.line = QLineEdit()
         self.line.setText(str(Path.home()))
@@ -107,13 +125,18 @@ class DirectoryDialog(QWidget):
         layout.addWidget(self.button)
 
     @Slot()
-    def browse_path(self):
+    def browse_path(self) -> None:
         """Slot executed when the 'browse' button is pressed."""
         path = QFileDialog.getExistingDirectory(
             self, "Select directory", str(Path.home()), QFileDialog.ShowDirsOnly
         )
         if path:
             self.line.setText(path)
+
+    @property
+    def path(self) -> str:
+        """Path in the QLineEdit."""
+        return self.line.text()
 
 
 class LineEditFname(QLineEdit):
