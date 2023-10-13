@@ -1,5 +1,8 @@
+from __future__ import annotations  # c.f. PEP 563, PEP 649
+
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pyglet.canvas import Display
 from qtpy.QtCore import QRegExp, Slot
@@ -21,12 +24,26 @@ from qtpy.QtWidgets import (
 from screeninfo import get_monitors
 
 from .eye_link import Eyelink
+from .utils._checks import check_type
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 
 class GUI(QMainWindow):
-    """Main window of the GUI."""
+    """Main window of the GUI.
 
-    def __init__(self) -> None:
+    Parameters
+    ----------
+    host_ip : str | None
+        IP Address of the computer hosting the eye-tracking device.
+        If None, a dummy eye-tracker is created.
+    """
+
+    def __init__(self, host_ip: Optional[str] = "100.1.1.1") -> None:
+        if host_ip is not None:
+            check_type(host_ip, (str,), "host_ip")
+        self._host_ip = host_ip
         super().__init__()
         self.setCentralWidget(CentralWidget())
         # tool bar
@@ -51,9 +68,8 @@ class GUI(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         # status bar
-        status = QStatusBar()
-        status.showMessage("[Not recording]")
-        self.setStatusBar(status)
+        self.setStatusBar(QStatusBar())
+        self.statusBar().showMessage("[Not recording]")
         # render
         self.show()
 
@@ -73,7 +89,7 @@ class GUI(QMainWindow):
             fname = datetime.now().strftime("%H%M%S")
         screen = self.centralWidget().findChildren(QComboBoxMonitor).monitor
         # start eye-tracker
-        self.eye_link = Eyelink(directory, fname, screen=screen)
+        self.eye_link = Eyelink(directory, fname, self._host_ip, screen)
         self.statusBar().showMessage("[Calibrating..]")
         self.eye_link.calibrate()
         self.eye_link.win.close()
