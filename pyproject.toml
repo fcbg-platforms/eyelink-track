@@ -23,6 +23,8 @@ dependencies = [
   'packaging',
   'psutil',
   'psychopy @ git+https://github.com/psychopy/psychopy',
+  'qtpy',
+  'screeninfo',
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '
 keywords = [
