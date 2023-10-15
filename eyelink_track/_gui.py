@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pyglet.canvas import Display
-from qtpy.QtCore import QRegExp, Slot
-from qtpy.QtGui import QRegExpValidator
+from qtpy.QtCore import QRegularExpression, Slot
+from qtpy.QtGui import QRegularExpressionValidator
 from qtpy.QtWidgets import (
     QAction,
     QComboBox,
@@ -83,11 +83,11 @@ class GUI(QMainWindow):
             for widget in self.centralWidget().findChildren(widget_type):
                 widget.setEnabled(False)
         # retrieve information
-        directory = self.centralWidget().findChildren(DirectoryDialog).path
-        fname = self.centralWidget().findChildren(LineEditFname).text()
+        directory = self.centralWidget().findChildren(DirectoryDialog)[0].path
+        fname = self.centralWidget().findChildren(LineEditFname)[0].text()
         if len(fname) == 0:
             fname = datetime.now().strftime("%H%M%S")
-        screen = self.centralWidget().findChildren(QComboBoxMonitor).monitor
+        screen = self.centralWidget().findChildren(QComboBoxMonitor)[0].monitor
         # start eye-tracker
         self.eye_link = Eyelink(directory, fname, self._host_ip, screen)
         self.statusBar().showMessage("[Calibrating..]")
@@ -160,8 +160,8 @@ class LineEditFname(QLineEdit):
 
     def __init__(self):
         super().__init__()
-        self.rx = QRegExp(r"^[a-zA-Z0-9]{1,8}$")
-        self.validator = QRegExpValidator(self.rx)
+        self.rx = QRegularExpression(r"^[a-zA-Z0-9]{1,8}$")
+        self.validator = QRegularExpressionValidator(self.rx)
         self.setValidator(self.validator)
 
 
