@@ -21,7 +21,6 @@ from qtpy.QtWidgets import (
     QToolBar,
     QWidget,
 )
-from screeninfo import get_monitors
 
 from .eye_link import Eyelink
 from .utils._checks import check_type
@@ -79,7 +78,7 @@ class GUI(QMainWindow):
         self.findChildren(QAction, name="start")[0].setEnabled(False)
         self.findChildren(QAction, name="stop")[0].setEnabled(True)
         # disable widgets from the central widget
-        for widget_type in (QLineEdit, QPushButton, QComboBoxMonitor):
+        for widget_type in (QLineEdit, QPushButton, QComboBoxScreen):
             for widget in self.centralWidget().findChildren(widget_type):
                 widget.setEnabled(False)
         # retrieve information
@@ -87,7 +86,7 @@ class GUI(QMainWindow):
         fname = self.centralWidget().findChildren(LineEditFname)[0].text()
         if len(fname) == 0:
             fname = datetime.now().strftime("%H%M%S")
-        screen = self.centralWidget().findChildren(QComboBoxMonitor)[0].monitor
+        screen = self.centralWidget().findChildren(QComboBoxScreen)[0].screen
         # start eye-tracker
         self.eye_link = Eyelink(directory, fname, self._host_ip, screen)
         self.statusBar().showMessage("[Calibrating..]")
@@ -105,7 +104,7 @@ class GUI(QMainWindow):
         self.findChildren(QAction, name="start")[0].setEnabled(True)
         self.findChildren(QAction, name="stop")[0].setEnabled(False)
         # enable widgets from the central widget
-        for widget_type in (QLineEdit, QPushButton, QComboBoxMonitor):
+        for widget_type in (QLineEdit, QPushButton, QComboBoxScreen):
             for widget in self.centralWidget().findChildren(widget_type):
                 widget.setEnabled(True)
         self.statusBar().showMessage("[Not recording]")
@@ -122,7 +121,7 @@ class CentralWidget(QWidget):
         layout = QFormLayout(self)
         layout.addRow("Directory:", DirectoryDialog())
         layout.addRow("File name:", LineEditFname())
-        layout.addRow("Monitor:", QComboBoxMonitor())
+        layout.addRow("Monitor:", QComboBoxScreen())
 
 
 class DirectoryDialog(QWidget):
@@ -165,44 +164,21 @@ class LineEditFname(QLineEdit):
         self.setValidator(self.validator)
 
 
-class QComboBoxMonitor(QComboBox):
-    """QComboBox listing the available monitors."""
+class QComboBoxScreen(QComboBox):
+    """QComboBox listing the available screens."""
 
     def __init__(self):
         super().__init__()
+        self.setEditable(False)
         self.screens = Display().get_screens()
-        self.monitors = get_monitors()
-        # map monitors by geometry to pyglet
-        self.monitors_matching = sorted(
-            [(elt.x, elt.y, elt.height, elt.width) for elt in self.screens]
-        ) == sorted([(elt.x, elt.y, elt.height, elt.width) for elt in self.monitors])
-        if self.monitors_matching:
-            idx = 0
-            for k, elt in enumerate(self.monitors):
-                self.addItem(f"{elt.name} (primary)" if elt.is_primary else elt.name)
-                if k != 0 and idx == 0 and not elt.is_primary:
-                    idx = k
-            self.setCurrentIndex(idx)
-        else:
-            self.addItems(
-                [
-                    f"{k}: (x={screen.x}, y={screen.y}, {screen.width}x{screen.height})"
-                    for k, screen in enumerate(self.screens)
-                ]
-            )
+        self.addItems(
+            [
+                f"{k}: (x={screen.x}, y={screen.y}, {screen.width}x{screen.height})"
+                for k, screen in enumerate(self.screens)
+            ]
+        )
 
     @property
-    def monitor(self) -> int:
-        """ID of the monitor for pyglet."""
-        if self.monitors_matching:
-            monitor = self.monitors[self.currentIndex()]
-            for k, screen in enumerate(self.screens):
-                if all(
-                    getattr(screen, elt) == getattr(monitor, elt)
-                    for elt in ("x", "y", "height", "width")
-                ):
-                    idx = k
-                    break
-        else:
-            idx = self.currentIndex()
-        return idx
+    def screen(self) -> int:
+        """ID of the monitor for PsychoPy."""
+        return self.currentIndex()
