@@ -68,9 +68,11 @@ test = [
   'pytest-timeout',
 ]
 
+[project.gui-scripts]
+eyelink_track-gui = 'eyelink_track.commands.gui:run'
+
 [project.scripts]
 eyelink_track = 'eyelink_track.commands.track:run'
-eyelink_track-gui = 'eyelink_track.commands.gui:run'
 eyelink_track-sys_info = 'eyelink_track.commands.sys_info:run'
 
 [project.urls]
