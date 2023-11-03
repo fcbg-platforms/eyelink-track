@@ -227,4 +227,3 @@ class Eyelink:
         except Exception:
             pass
         pylink.closeGraphics()
-
