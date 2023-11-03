@@ -226,3 +226,5 @@ class Eyelink:
             self.win.close()
         except Exception:
             pass
+        pylink.closeGraphics()
+
