@@ -32,7 +32,8 @@ repos:
       rev: 6.3.0
       hooks:
           - id: pydocstyle
-            files: template
+            files: eyelink_track
+            exclude: EyeLinkCoreGraphicsPsychoPy.py
             additional_dependencies: [tomli]
 
     - repo: https://github.com/pappasam/toml-sort
