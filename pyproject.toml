@@ -57,7 +57,6 @@ full = [
   'eyelink_track[all]',
 ]
 style = [
-  'bibclean',
   'black',
   'codespell',
   'isort',
