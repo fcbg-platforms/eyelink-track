@@ -1,4 +1,5 @@
 ci:
+    autoupdate_schedule: quarterly
     skip: [codespell, pydocstyle, yamllint]
 
 repos:
