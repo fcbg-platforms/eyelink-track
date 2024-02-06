@@ -1,4 +1,5 @@
 ci:
+    autoupdate_schedule: quarterly
     skip: [codespell, pydocstyle, yamllint]
 
 repos:
@@ -16,7 +17,7 @@ repos:
             files: eyelink_track
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.14
+      rev: v0.2.0
       hooks:
           - id: ruff
             args: [--fix, --exit-non-zero-on-fix]
