@@ -10,21 +10,21 @@ repos:
             files: eyelink_track
 
     - repo: https://github.com/psf/black-pre-commit-mirror
-      rev: 24.3.0
+      rev: 24.4.2
       hooks:
           - id: black
             args: [--quiet]
             files: eyelink_track
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.3.5
+      rev: v0.5.0
       hooks:
           - id: ruff
             args: [--fix, --exit-non-zero-on-fix]
             files: eyelink_track
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.2.6
+      rev: v2.3.0
       hooks:
           - id: codespell
             args: [--check-filenames, --ignore-words=.codespellignore]
