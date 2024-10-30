@@ -1,4 +1,4 @@
-from __future__ import annotations  # c.f. PEP 563, PEP 649
+from __future__ import annotations
 
 import os
 from typing import TYPE_CHECKING
@@ -8,7 +8,7 @@ from psychopy import logging
 from psychopy.event import waitKeys
 from psychopy.visual import TextStim, Window
 
-from ..config.constants import FOREGROUND_COLOR, SCREEN_KWARGS
+from ..config import FOREGROUND_COLOR, SCREEN_KWARGS
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
@@ -36,6 +36,8 @@ class Eyelink:
         If None, a dummy eye-tracker is created.
     screen : int | None
         IDx of the screen to use.
+    resolution : tuple | None
+        Resolution of the screen to set.
     """
 
     def __init__(
@@ -44,7 +46,8 @@ class Eyelink:
         fname: str = "TEST",
         host_ip: str | None = "100.1.1.1",
         screen: int | None = None,
-    ):
+        resolution : tuple[int, int] | None = None,
+    ) -> None:
         pname = ensure_path(pname, must_exist=False)
         if not pname.exists():
             os.makedirs(pname)
@@ -58,6 +61,11 @@ class Eyelink:
             screen = ensure_int(screen, "screen")
             if screen < 0:
                 raise ValueError("The screen ID should be a 0-index integer.")
+        if resolution is not None:
+            check_type(resolution, (tuple,), "resolution")
+            if len(resolution) != 2:
+                raise ValueError("The resolution should be a tuple of 2 integers.")
+            resolution = tuple(ensure_int(res, "resolution") for res in resolution)
         self.edf_fname = fname
 
         # ----------------------------------------------------------------------
@@ -122,8 +130,8 @@ class Eyelink:
         self.el_tracker.sendCommand("button_function 5 'accept_target_fixation'")
 
         # Step 4: set up a graphics environment for calibration
-        if screen is not None:
-            SCREEN_KWARGS["screen"] = screen
+        SCREEN_KWARGS["screen"] = 0 if screen is None else screen
+        SCREEN_KWARGS["size"] = resolution if resolution is not None else None
         self.win = Window(units="pix", **SCREEN_KWARGS)
 
         # get the native screen resolution used by PsychoPy

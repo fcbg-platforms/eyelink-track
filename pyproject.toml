@@ -45,6 +45,7 @@ all = [
   'eyelink_track[build]',
   'eyelink_track[style]',
   'eyelink_track[test]',
+  'pyqt6',
 ]
 build = [
   'build',

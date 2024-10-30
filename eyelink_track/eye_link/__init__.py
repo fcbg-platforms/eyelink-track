@@ -1,3 +1,3 @@
 """Eye-link module."""
 
-from .EyeLink import Eyelink  # noqa: F401
+from .EyeLink import Eyelink

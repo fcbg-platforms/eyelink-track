@@ -1,32 +1,17 @@
-from __future__ import annotations  # c.f. PEP 563, PEP 649
+from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from pyglet.canvas import Display
 from qtpy.QtCore import QRegularExpression, Slot
 from qtpy.QtGui import QRegularExpressionValidator
-from qtpy.QtWidgets import (
-    QAction,
-    QComboBox,
-    QFileDialog,
-    QFormLayout,
-    QHBoxLayout,
-    QLineEdit,
-    QMainWindow,
-    QPushButton,
-    QStatusBar,
-    QStyle,
-    QToolBar,
-    QWidget,
-)
+from qtpy.QtWidgets import (QAction, QComboBox, QFileDialog, QFormLayout,
+                            QHBoxLayout, QLineEdit, QMainWindow, QPushButton,
+                            QStatusBar, QStyle, QToolBar, QWidget)
 
 from .eye_link import Eyelink
 from .utils._checks import check_type
-
-if TYPE_CHECKING:
-    pass
 
 
 class GUI(QMainWindow):
@@ -87,8 +72,9 @@ class GUI(QMainWindow):
         if len(fname) == 0:
             fname = datetime.now().strftime("%H%M%S")
         screen = self.centralWidget().findChildren(QComboBoxScreen)[0].screen
+        resolution = self.centralWidget().findChildren(QComboBoxScreen)[0].resolution
         # start eye-tracker
-        self.eye_link = Eyelink(directory, fname, self._host_ip, screen)
+        self.eye_link = Eyelink(directory, fname, self._host_ip, screen, resolution)
         self.statusBar().showMessage("[Calibrating..]")
         self.eye_link.calibrate()
         self.eye_link.win.close()
@@ -182,3 +168,9 @@ class QComboBoxScreen(QComboBox):
     def screen(self) -> int:
         """ID of the monitor for PsychoPy."""
         return self.currentIndex()
+
+    @property
+    def resolution(self) -> tuple[int, int]:
+        """Resolution of the monitor."""
+        screen = self.screens[self.screen]
+        return screen.width, screen.height
