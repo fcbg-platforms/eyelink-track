@@ -96,6 +96,7 @@ branch = true
 cover_pylib = false
 omit = [
   '**/__init__.py',
+  '**/conftest.py',
   '**/eyelink_track/_version.py',
   '**/eyelink_track/utils/_fixes.py',
   '**/tests/**',
