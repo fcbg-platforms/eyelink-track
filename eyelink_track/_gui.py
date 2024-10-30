@@ -30,15 +30,13 @@ class GUI(QMainWindow):
 
     Parameters
     ----------
-    host_ip : str | None
-        IP Address of the computer hosting the eye-tracking device.
-        If None, a dummy eye-tracker is created.
+    mock : bool
+        If True, uses a mock eye-tracker.
     """
 
-    def __init__(self, host_ip: str | None = "100.1.1.1") -> None:
-        if host_ip is not None:
-            check_type(host_ip, (str,), "host_ip")
-        self._host_ip = host_ip
+    def __init__(self, mock: bool) -> None:
+        check_type(mock, (bool,), "mock")
+        self._mock = mock
         super().__init__()
         self.setCentralWidget(CentralWidget())
         # tool bar
@@ -85,8 +83,9 @@ class GUI(QMainWindow):
         screen = self.centralWidget().findChildren(QComboBoxScreen)[0].screen
         resolution = self.centralWidget().findChildren(QComboBoxScreen)[0].resolution
         # start eye-tracker
-        self.eye_link = Eyelink(directory, fname, self._host_ip, screen, resolution)
-        if self._host_ip is not None:
+        kwargs = dict(host_ip=None) if self._mock else dict()
+        self.eye_link = Eyelink(directory, fname, screen, resolution, **kwargs)
+        if not self._mock:
             self.statusBar().showMessage("[Calibrating..]")
             self.eye_link.calibrate()
         self.eye_link.win.close()

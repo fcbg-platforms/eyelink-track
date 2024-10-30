@@ -15,6 +15,5 @@ def run(mock: bool) -> None:
     from .._gui import GUI
 
     app = QApplication([])
-    kwargs = dict(host_ip=None) if mock else dict()
-    window = GUI(**kwargs)  # noqa: F841
+    window = GUI(mock)  # noqa: F841
     app.exec()

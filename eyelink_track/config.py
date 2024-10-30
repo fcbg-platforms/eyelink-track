@@ -11,3 +11,4 @@ SCREEN_KWARGS: dict[str, Any] = dict(
 
 # Eye-tracker constants
 FOREGROUND_COLOR = (0, 0, 0)
+HOST_IP: str = "100.1.1.1"

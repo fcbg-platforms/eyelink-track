@@ -8,7 +8,7 @@ from psychopy import logging
 from psychopy.event import waitKeys
 from psychopy.visual import TextStim, Window
 
-from ..config import FOREGROUND_COLOR, SCREEN_KWARGS
+from ..config import FOREGROUND_COLOR, HOST_IP, SCREEN_KWARGS
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
@@ -44,7 +44,7 @@ class Eyelink:
         self,
         pname: str | Path = "./",
         fname: str = "TEST",
-        host_ip: str | None = "100.1.1.1",
+        host_ip: str | None = HOST_IP,
         screen: int | None = None,
         resolution: tuple[int, int] | None = None,
     ) -> None:
