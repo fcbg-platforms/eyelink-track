@@ -86,8 +86,9 @@ class GUI(QMainWindow):
         resolution = self.centralWidget().findChildren(QComboBoxScreen)[0].resolution
         # start eye-tracker
         self.eye_link = Eyelink(directory, fname, self._host_ip, screen, resolution)
-        self.statusBar().showMessage("[Calibrating..]")
-        self.eye_link.calibrate()
+        if self._host_ip is not None:
+            self.statusBar().showMessage("[Calibrating..]")
+            self.eye_link.calibrate()
         self.eye_link.win.close()
         self.statusBar().showMessage("[Recording..]")
         self.eye_link.start()
