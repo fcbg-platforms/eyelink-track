@@ -27,7 +27,6 @@ python -m pip install --index-url=https://pypi.sr-support.com sr-research-pylink
 ```
 
 On Linux, PsychoPy requires:
-- wxPython: https://extras.wxpython.org/wxPython4/extras/linux/gtk3/
 - APT libraries
 
 ```
@@ -48,3 +47,6 @@ sudo nano /etc/security/limits.d/99-psychopylimits.conf
 
 c.f. https://www.thegeekdiary.com/understanding-etc-security-limits-conf-file-to-set-ulimit/
 for additional information on `ulimit`.
+
+PsychoPy requires wxPython, which can be difficult to compile from source on linux.
+Wheels are available here: https://extras.wxpython.org/wxPython4/extras/linux/gtk3/
