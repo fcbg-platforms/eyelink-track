@@ -131,7 +131,7 @@ class Eyelink:
 
         # Step 4: set up a graphics environment for calibration
         SCREEN_KWARGS["screen"] = 0 if screen is None else screen
-        SCREEN_KWARGS["size"] = resolution if resolution is not None else None
+        SCREEN_KWARGS["size"] = resolution if resolution is not None else (1920, 1080)
         self.win = Window(units="pix", **SCREEN_KWARGS)
 
         # get the native screen resolution used by PsychoPy
