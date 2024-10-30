@@ -4,7 +4,7 @@ import click
 from qtpy.QtWidgets import QApplication
 
 
-@click.command(name="sys-info")
+@click.command(name="gui")
 @click.option(
     "--mock",
     help="Use a mock eye-tracker.",
