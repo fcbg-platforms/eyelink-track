@@ -1,40 +1,18 @@
-ci:
-    autoupdate_schedule: quarterly
-    skip: [codespell, pydocstyle, yamllint]
-
 repos:
-    - repo: https://github.com/pycqa/isort
-      rev: 5.13.2
-      hooks:
-          - id: isort
-            files: eyelink_track
-
-    - repo: https://github.com/psf/black-pre-commit-mirror
-      rev: 24.4.2
-      hooks:
-          - id: black
-            args: [--quiet]
-            files: eyelink_track
-
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.5.0
+      rev: v0.7.1
       hooks:
           - id: ruff
-            args: [--fix, --exit-non-zero-on-fix]
-            files: eyelink_track
+            name: ruff linter
+            args: [--fix, --show-fixes]
+          - id: ruff-format
+            name: ruff formatter
 
     - repo: https://github.com/codespell-project/codespell
       rev: v2.3.0
       hooks:
           - id: codespell
-            args: [--check-filenames, --ignore-words=.codespellignore]
-
-    - repo: https://github.com/pycqa/pydocstyle
-      rev: 6.3.0
-      hooks:
-          - id: pydocstyle
-            files: eyelink_track
-            exclude: EyeLinkCoreGraphicsPsychoPy.py
+            args: [--write-changes]
             additional_dependencies: [tomli]
 
     - repo: https://github.com/pappasam/toml-sort

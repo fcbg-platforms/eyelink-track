@@ -16,8 +16,6 @@ Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 Last updated on 5/13/2021
 """
 
-from __future__ import division, print_function
-
 import array
 import os
 import platform
@@ -159,19 +157,14 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self.imgResize = None
 
     def __str__(self):
-        """Overwrite __str__ to show some information about the
-        CoreGraphicsPsychoPy library
-        """
-
+        """Overwrite __str__ to show information about the CoreGraphicsPsychoPy lib."""
         return (
             "Using the EyeLinkCoreGraphicsPsychoPy library, "
-            + "version %s, " % self._version
-            + "last updated on %s" % self._last_updated
+            + f"version {self._version}, last updated on {self._last_updated}"
         )
 
     def fixMacRetinaDisplay(self):
-        """Fix macOS retina display issue"""
-
+        """Fix macOS retina display issue."""
         # Resolution fix for Mac retina displays
         if "Darwin" in platform.system():
             self._w = int(self._w / 2.0)
@@ -179,23 +172,23 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._calibInst.pos = (20 - self._w / 2, self._h / 2 - 20)
 
     def getForegroundColor(self):
-        """Get the foreground color"""
-
+        """Get the foreground color."""
         return self._foregroundColor
 
     def getBackgroundColor(self):
-        """Get the foreground color"""
-
+        """Get the foreground color."""
         return self._backgroundColor
 
     def setCalibrationColors(self, foreground_color, background_color):
-        """Set calibration background and foreground colors
+        """Set calibration background and foreground colors.
 
-        Parameters:
-            foreground_color--foreground color for the calibration target
-            background_color--calibration background.
+        Parameters
+        ----------
+        foreground_color :
+            foreground color for the calibration target
+        background_color :
+            calibration background.
         """
-
         self._foregroundColor = foreground_color
         self._backgroundColor = background_color
 
@@ -207,36 +200,31 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._camImgRect.lineColor = foreground_color
 
     def setTargetSize(self, size):
-        """Set calibration target size in pixels"""
-
+        """Set calibration target size in pixels."""
         self._targetSize = size
 
-    def setTargetType(self, type):
-        """Set calibration target size in pixels
+    def setTargetType(self, type):  # noqa: A002
+        """Set calibration target size in pixels.
 
-        Parameters:
-            type: "circle" (default), "picture", "movie", "spiral"
+        Parameters
+        ----------
+        type: "circle" (default), "picture", "movie", "spiral"
         """
-
         self._calTarget = type
 
     def setMoiveTarget(self, movie_target):
-        """Set the movie file to use as the calibration target"""
-
+        """Set the movie file to use as the calibration target."""
         self._movieTarget = movie_target
 
     def setPictureTarget(self, picture_target):
-        """Set the movie file to use as the calibration target"""
-
+        """Set the movie file to use as the calibration target."""
         self._pictureTarget = picture_target
 
     def update_cal_target(self):
-        """Make sure target stimuli is already memory when
-        being used by draw_cal_target"""
-
+        """Make sure target stimuli is in memory when being used by draw_cal_target."""
         if self._calTarget == "picture":
             if self._pictureTarget is None:
-                print("ERROR: Provide a picture as the calibration target")
+                print("ERROR: Provide a picture as the calibration target")  # noqa: T201
                 core.quit()
                 sys.exit()
             else:
@@ -245,7 +233,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
                         self._display, self._pictureTarget
                     )
                 else:
-                    print("ERROR: Picture %s not found" % self._pictureTarget)
+                    print(f"ERROR: Picture {self._pictureTarget} not found.")  # noqa: T201
                     self._display.close()
                     core.quit()
         elif self._calTarget == "spiral":
@@ -265,7 +253,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
         elif self._calTarget == "movie":
             if self._movieTarget is None:
-                print("ERROR: Provide a movie clip as the calibration target")
+                print("ERROR: Provide a movie clip as the calibration target")  # noqa: T201
                 core.quit()
             else:
                 if os.path.exists(self._movieTarget):
@@ -276,7 +264,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
                         loop=True,
                     )
                 else:
-                    print("ERROR: Movie %s not found" % self._movieTarget)
+                    print(f"ERROR: Movie {self._movieTarget} not found")  # noqa: T201
                     self._display.close()
                     core.quit()
         else:  # Use the default target 'circle'
@@ -298,9 +286,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             )
 
     def setup_cal_display(self):
-        """Set up the calibration display before entering
-        the calibration/validation routine"""
-
+        """Set up the calibration display before entering the calibration/validation."""
         self._display.clearBuffer()
 
         self._calibInst.autoDraw = True
@@ -308,8 +294,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self.update_cal_target()
 
     def clear_cal_display(self):
-        """Clear the calibration display"""
-
+        """Clear the calibration display."""
         self._calibInst.autoDraw = False
         self._title.autoDraw = False
         self._msgMouseSim.autoDraw = False
@@ -320,16 +305,16 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._display.color = self._backgroundColor
 
     def exit_cal_display(self):
-        """Exit the calibration/validation routine, set the screen
-        units to the original one used by the user."""
+        """Exit the calibration/validation routine.
 
+        Set the screen units to the original one used by the user.
+        """
         self._display.setUnits(self._units)
         self._animatedTarget = False
         self.clear_cal_display()
 
     def record_abort_hide(self):
-        """This function is called if aborted."""
-        pass
+        """This function is called if aborted."""  # noqa: D401, D404
 
     def erase_cal_target(self):
         """Erase the calibration/validation & drift-check target."""
@@ -391,7 +376,6 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def draw_line(self, x1, y1, x2, y2, colorindex):
         """Draw a line. This is used for drawing crosshairs/squares."""
-
         color = self.getColorFromIndex(colorindex)
 
         if self._size[0] > 192:
@@ -406,10 +390,10 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._img.line([(x1, y1), (x2, y2)], color)
 
     def draw_lozenge(self, x, y, width, height, colorindex):
-        """Draw a lozenge to show the defined search limits
+        """Draw a lozenge to show the defined search limits.
+
         (x,y) is top-left corner of the bounding box.
         """
-
         color = self.getColorFromIndex(colorindex)
 
         if self._size[0] > 192:
@@ -460,7 +444,6 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def get_mouse_state(self):
         """Get the current mouse position and status."""
-
         w, h = self._display.size
         X, Y = self._mouse.getPos()
         mX = (X + w / 2.0) / w * self._size[0] / 2.0
@@ -471,9 +454,10 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         return ((mX, mY), state)
 
     def get_input_key(self):
-        """This function will be constantly pools, update the stimuli
-        here is you need dynamic calibration target."""
+        """This function will be constantly pooled.
 
+        Update the stimuli here is you need dynamic calibration target.
+        """  # noqa: D401, D404
         # This function is constantly checked by the API,
         # so we could update the gabor here
         if self._animatedTarget:
@@ -566,7 +550,6 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def exit_image_display(self):
         """Clear the camera image."""
-
         self._calibInst.autoDraw = True
         self._title.autoDraw = False
         self._msgMouseSim.autoDraw = False
@@ -575,13 +558,13 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def alert_printf(self, msg):
         """Print error messages."""
-
-        print("Error: " + msg)
+        print("Error: " + msg)  # noqa: T201
 
     def setup_image_display(self, width, height):
-        """Set up the camera image, for newer APIs,
-        the size is 384 x 320 pixels."""
+        """Set up the camera image, for newer APIs.
 
+        The size is 384 x 320 pixels.
+        """
         self.last_mouse_state = -1
         self._calibInst.autoDraw = True
         self._title.autoDraw = True
@@ -594,7 +577,6 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def image_title(self, text):
         """Draw title text below the camera image."""
-
         if self.imgResize is not None:
             im_w, im_h = self.imgResize.size
             self._title.pos = (0, -im_h / 2.0 - self._msgHeight)
@@ -604,7 +586,6 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def draw_image_line(self, width, line, totlines, buff):
         """Display image pixel by pixel, line by line."""
-
         i = 0
         for i in range(width):
             try:
@@ -628,12 +609,11 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._imagebuffer = array.array("I")
 
     def set_image_palette(self, r, g, b):
-        """Given a set of RGB colors, create a list of 24bit numbers
-        representing the pallet.
+        """For a set of RGB colors, create a list of 24bit int representing the pallet.
 
         i.e., RGB of (1,64,127) would be saved as 82047,
-        or the number 00000001 01000000 011111111"""
-
+        or the number 00000001 01000000 011111111
+        """
         self._imagebuffer = array.array("I")
 
         sz = len(r)
@@ -647,5 +627,4 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             i = i + 1
 
     def play_beep(*args, **kwargs):
-        """Dummy play_beep method."""
-        pass
+        """Dummy play_beep method."""  # noqa: D401

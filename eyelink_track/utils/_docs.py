@@ -4,27 +4,57 @@ Inspired from mne: https://mne.tools/stable/index.html
 Inspired from mne.utils.docs.py by Eric Larson <larson.eric.d@gmail.com>
 """
 
+from __future__ import annotations
+
 import sys
-from typing import Callable, Dict, List
+from typing import TYPE_CHECKING
 
-# ------------------------- Documentation dictionary -------------------------
-docdict: Dict[str, str] = dict()
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
-# ---------------------------------- verbose ---------------------------------
-docdict[
-    "verbose"
-] = """
+# -- Documentation dictionary ----------------------------------------------------------
+docdict: dict[str, str] = dict()
+
+# -- A ---------------------------------------------------------------------------------
+# -- B ---------------------------------------------------------------------------------
+# -- C ---------------------------------------------------------------------------------
+# -- D ---------------------------------------------------------------------------------
+# -- E ---------------------------------------------------------------------------------
+# -- F ---------------------------------------------------------------------------------
+# -- G ---------------------------------------------------------------------------------
+# -- H ---------------------------------------------------------------------------------
+# -- I ---------------------------------------------------------------------------------
+# -- J ---------------------------------------------------------------------------------
+# -- K ---------------------------------------------------------------------------------
+# -- L ---------------------------------------------------------------------------------
+# -- M ---------------------------------------------------------------------------------
+# -- N ---------------------------------------------------------------------------------
+# -- O ---------------------------------------------------------------------------------
+# -- P ---------------------------------------------------------------------------------
+# -- Q ---------------------------------------------------------------------------------
+# -- R ---------------------------------------------------------------------------------
+# -- S ---------------------------------------------------------------------------------
+# -- T ---------------------------------------------------------------------------------
+# -- U ---------------------------------------------------------------------------------
+# -- V ---------------------------------------------------------------------------------
+docdict["verbose"] = """
 verbose : int | str | bool | None
     Sets the verbosity level. The verbosity increases gradually between ``"CRITICAL"``,
     ``"ERROR"``, ``"WARNING"``, ``"INFO"`` and ``"DEBUG"``. If None is provided, the
     verbosity is set to ``"WARNING"``. If a bool is provided, the verbosity is set to
     ``"WARNING"`` for False and to ``"INFO"`` for True."""
 
-# ------------------------- Documentation functions --------------------------
-docdict_indented: Dict[int, Dict[str, str]] = dict()
+# -- W ---------------------------------------------------------------------------------
+# -- X ---------------------------------------------------------------------------------
+# -- Y ---------------------------------------------------------------------------------
+# -- Z ---------------------------------------------------------------------------------
+
+# -- Documentation functions -----------------------------------------------------------
+docdict_indented: dict[int, dict[str, str]] = dict()
 
 
-def fill_doc(f: Callable) -> Callable:
+def fill_doc(f: Callable[..., Any]) -> Callable[..., Any]:
     """Fill a docstring with docdict entries.
 
     Parameters
@@ -67,19 +97,19 @@ def fill_doc(f: Callable) -> Callable:
     return f
 
 
-def _indentcount_lines(lines: List[str]) -> int:
+def _indentcount_lines(lines: list[str]) -> int:
     """Minimum indent for all lines in line list.
 
-    >>> lines = [' one', '  two', '   three']
+    >>> lines = [" one", "  two", "   three"]
     >>> indentcount_lines(lines)
     1
     >>> lines = []
     >>> indentcount_lines(lines)
     0
-    >>> lines = [' one']
+    >>> lines = [" one"]
     >>> indentcount_lines(lines)
     1
-    >>> indentcount_lines(['    '])
+    >>> indentcount_lines(["    "])
     0
     """
     indent = sys.maxsize
@@ -92,7 +122,7 @@ def _indentcount_lines(lines: List[str]) -> int:
     return indent
 
 
-def copy_doc(source: Callable) -> Callable:
+def copy_doc(source: Callable[..., Any]) -> Callable[..., Any]:
     """Copy the docstring from another function (decorator).
 
     The docstring of the source function is prepepended to the docstring of the function
@@ -120,13 +150,13 @@ def copy_doc(source: Callable) -> Callable:
     >>> class B(A):
     ...     @copy_doc(A.m1)
     ...     def m1():
-    ...         ''' this gets appended'''
+    ...         '''this gets appended'''
     ...         pass
     >>> print(B.m1.__doc__)
     Docstring for m1 this gets appended
     """
 
-    def wrapper(func):
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         if source.__doc__ is None or len(source.__doc__) == 0:
             raise RuntimeError(
                 f"The docstring from {source.__name__} could not be copied because it "

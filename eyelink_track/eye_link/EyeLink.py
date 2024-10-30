@@ -15,7 +15,6 @@ from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Optional, Union
 
 # set psychopy log level
 logging.console.setLevel(logging.CRITICAL)
@@ -41,10 +40,10 @@ class Eyelink:
 
     def __init__(
         self,
-        pname: Union[str, Path] = "./",
+        pname: str | Path = "./",
         fname: str = "TEST",
-        host_ip: Optional[str] = "100.1.1.1",
-        screen: Optional[int] = None,
+        host_ip: str | None = "100.1.1.1",
+        screen: int | None = None,
     ):
         pname = ensure_path(pname, must_exist=False)
         if not pname.exists():

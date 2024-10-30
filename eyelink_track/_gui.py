@@ -26,7 +26,7 @@ from .eye_link import Eyelink
 from .utils._checks import check_type
 
 if TYPE_CHECKING:
-    from typing import Optional
+    pass
 
 
 class GUI(QMainWindow):
@@ -39,7 +39,7 @@ class GUI(QMainWindow):
         If None, a dummy eye-tracker is created.
     """
 
-    def __init__(self, host_ip: Optional[str] = "100.1.1.1") -> None:
+    def __init__(self, host_ip: str | None = "100.1.1.1") -> None:
         if host_ip is not None:
             check_type(host_ip, (str,), "host_ip")
         self._host_ip = host_ip

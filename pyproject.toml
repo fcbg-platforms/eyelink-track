@@ -14,15 +14,12 @@ classifiers = [
   'Operating System :: Unix',
   'Programming Language :: Python :: 3 :: Only',
   'Programming Language :: Python :: 3.10',
-  'Programming Language :: Python :: 3.11',
-  'Programming Language :: Python :: 3.12',
-  'Programming Language :: Python :: 3.9',
 ]
 dependencies = [
   'numpy>=1.21',
   'packaging',
   'psutil',
-  'psychopy @ git+https://github.com/psychopy/psychopy',
+  'psychopy',
   'qtpy',
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '
@@ -37,7 +34,7 @@ maintainers = [
 ]
 name = 'eyelink_track'
 readme = 'README.md'
-requires-python = '>=3.9'
+requires-python = '==3.10'
 version = '0.4.0.dev0'
 
 [project.gui-scripts]
@@ -57,18 +54,16 @@ full = [
   'eyelink_track[all]',
 ]
 style = [
-  'black',
-  'codespell',
-  'isort',
-  'pydocstyle[toml]',
-  'ruff',
+  'codespell[toml]>=2.2.4',
+  'pre-commit',
+  'ruff>=0.6.0',
   'toml-sort',
   'yamllint',
 ]
 test = [
-  'pytest',
   'pytest-cov',
   'pytest-timeout',
+  'pytest>=8.0',
 ]
 
 [project.scripts]
@@ -76,22 +71,14 @@ eyelink_track = 'eyelink_track.commands.track:run'
 eyelink_track-sys_info = 'eyelink_track.commands.sys_info:run'
 
 [project.urls]
-documentation = 'https://github.com/fcbg-platforms/eyelink-track'
-homepage = 'https://github.com/fcbg-platforms/eyelink-track'
 source = 'https://github.com/fcbg-platforms/eyelink-track'
 tracker = 'https://github.com/fcbg-hp-meeg/eyelink-track/issues'
 
-[tool.black]
-extend-exclude = '''
-(
-      __pycache__
-    | .github
-    | setup.py
-)
-'''
-include = '\.pyi?$'
-line-length = 88
-target-version = ['py39']
+[tool.codespell]
+check-filenames = true
+check-hidden = true
+ignore-words = '.codespellignore'
+skip = 'build,.git,.pytest_cache,.venv'
 
 [tool.coverage.report]
 exclude_lines = [
@@ -112,37 +99,35 @@ omit = [
   '**/tests/**',
 ]
 
-[tool.isort]
-extend_skip_glob = [
-  'doc/*',
-  'setup.py',
-]
-line_length = 88
-multi_line_output = 3
-profile = 'black'
-py_version = 39
-
-[tool.pydocstyle]
-add_ignore = 'D100,D104,D107'
-convention = 'numpy'
-ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
-match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^eyelink_track.*'
-
 [tool.pytest.ini_options]
-addopts = '--durations 20 --junit-xml=junit-results.xml --verbose'
-filterwarnings = []
-minversion = '6.0'
+addopts = ['--color=yes', '--cov-report=', '--durations=20', '--junit-xml=junit-results.xml', '--strict-config', '--tb=short', '-ra', '-v']
+junit_family = 'xunit2'
+minversion = '8.0'
 
 [tool.ruff]
-extend-exclude = [
-  "doc",
-  "setup.py",
-]
+extend-exclude = []
 line-length = 88
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401"]
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+
+[tool.ruff.lint]
+ignore = []
+select = ['A', 'B', 'D', 'E', 'F', 'G', 'I', 'LOG', 'NPY', 'PIE', 'PT', 'T20', 'UP', 'W']
+
+[tool.ruff.lint.per-file-ignores]
+'*' = [
+  'B904',  # 'Within an except clause, raise exceptions with raise ... from ...'
+  'D100',  # 'Missing docstring in public module'
+  'D104',  # 'Missing docstring in public package'
+  'D107',  # 'Missing docstring in __init__'
+]
+'__init__.py' = ['F401']
+
+[tool.ruff.lint.pydocstyle]
+convention = 'numpy'
+ignore-decorators = ["eyelink_track.utils._docs.copy_doc"]
 
 [tool.setuptools]
 include-package-data = false
@@ -154,4 +139,5 @@ include = ['eyelink_track*']
 [tool.tomlsort]
 all = true
 ignore_case = true
+spaces_before_inline_comment = 2
 trailing_comma_inline_array = true

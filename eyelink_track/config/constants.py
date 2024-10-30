@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any
 
 # PsychoPy windows constants
-SCREEN_KWARGS: Dict[str, Any] = dict(
+SCREEN_KWARGS: dict[str, Any] = dict(
     allowGUI=False,
     color=(-1, -1, -1),
     fullscr=True,

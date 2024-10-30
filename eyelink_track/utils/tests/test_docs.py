@@ -1,8 +1,9 @@
-"""Test _docs.py"""
+import re
+from pathlib import Path
 
 import pytest
 
-from .._docs import copy_doc, fill_doc
+from .._docs import copy_doc, docdict, fill_doc
 from ..logs import verbose
 
 
@@ -18,7 +19,6 @@ def test_fill_doc_function():
         ----------
         %(verbose)s
         """
-        pass
 
     assert "verbose : int | str | bool | None" in foo.__doc__
 
@@ -40,7 +40,6 @@ def test_fill_doc_function():
             ----------
             %(invalid_key)s
             """
-            pass
 
     # test filling docstring of decorated function
     @fill_doc
@@ -52,7 +51,6 @@ def test_fill_doc_function():
         ----------
         %(verbose)s
         """
-        pass
 
     assert "verbose : int | str | bool | None" in foo.__doc__
 
@@ -80,7 +78,6 @@ def test_fill_doc_class():
             ----------
             %(verbose)s
             """
-            pass
 
         @fill_doc
         @verbose
@@ -91,7 +88,6 @@ def test_fill_doc_class():
             ----------
             %(verbose)s
             """
-            pass
 
         @staticmethod
         @fill_doc
@@ -103,7 +99,6 @@ def test_fill_doc_class():
             ----------
             %(verbose)s
             """
-            pass
 
     assert "verbose : int | str | bool | None" in Foo.__doc__
     assert "verbose : int | str | bool | None" in Foo.method.__doc__
@@ -121,7 +116,6 @@ def test_copy_doc_function():
     # test copy of docstring
     def foo(x, y):
         """My doc."""
-        pass
 
     @copy_doc(foo)
     def foo2(x, y):
@@ -130,7 +124,6 @@ def test_copy_doc_function():
     @copy_doc(foo)
     def foo3(x, y):
         """Doc of foo3."""
-        pass
 
     assert foo.__doc__ == foo2.__doc__
     assert foo.__doc__ + "Doc of foo3." == foo3.__doc__
@@ -149,7 +142,6 @@ def test_copy_doc_function():
     @verbose
     def foo(verbose=None):
         """My doc."""
-        pass
 
     @copy_doc(foo)
     def foo2(verbose=None):
@@ -175,7 +167,6 @@ def test_copy_doc_class():
 
         def method1(self):
             """Super 101 doc."""
-            pass
 
     @copy_doc(Foo)
     class Foo2:
@@ -207,3 +198,16 @@ def test_copy_doc_class():
     assert foo.method1.__doc__ == foo2.method2.__doc__
     assert foo.method1.__doc__ == foo2.method3.__doc__
     assert foo.method1.__doc__ == foo2.method4.__doc__
+
+
+def test_docdict_order():
+    """Test that docdict is alphabetical."""
+    # read the file as text, and get entries via regex
+    docs_path = Path(__file__).parents[1] / "_docs.py"
+    assert docs_path.is_file()
+    with open(docs_path, encoding="UTF-8") as fid:
+        docs = fid.read()
+    entries = re.findall(r'docdict\[(?:\n    )?["\'](.+)["\']\n?\] = ', docs)
+    # test length, uniqueness and order
+    assert len(docdict) == len(entries)
+    assert sorted(entries) == entries
