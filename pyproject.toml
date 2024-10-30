@@ -22,6 +22,8 @@ dependencies = [
   'psutil',
   'psychopy',
   'qtpy',
+  'sr-research-pylink',
+  'wxPython; platform_system == "Linux"',
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '
 keywords = [
@@ -35,7 +37,7 @@ maintainers = [
 ]
 name = 'eyelink_track'
 readme = 'README.md'
-requires-python = '==3.10'
+requires-python = '==3.10.*'
 version = '0.4.0.dev0'
 
 [project.gui-scripts]
@@ -141,3 +143,12 @@ all = true
 ignore_case = true
 spaces_before_inline_comment = 2
 trailing_comma_inline_array = true
+
+[[tool.uv.index]]
+explicit = true
+name = "sr-research-pylink"
+url = "https://pypi.sr-support.com"
+
+[tool.uv.sources]
+sr-research-pylink = {index = "sr-research-pylink"}
+wxpython = {url = "https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl"}

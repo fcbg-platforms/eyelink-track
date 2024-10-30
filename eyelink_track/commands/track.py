@@ -20,7 +20,7 @@ from ..eye_link import Eyelink
     default=datetime.now().strftime("%H%M%S"),
 )
 @click.option("--screen", help="ID of the screen to use.", type=int)
-def run(dir: Path, fname: Path, screen: int) -> None:
+def run(dir: Path, fname: Path, screen: int) -> None:  # noqa: A002
     """Run track() command."""
     eye_link = Eyelink(dir, fname, screen=screen)
     eye_link.calibrate()
