@@ -23,4 +23,3 @@ def run(fname: Path, screen: int) -> None:
     eye_link.start()
     input(">>> Press ENTER to stop the recording.")
     eye_link.stop()
-
