@@ -5,8 +5,6 @@ from pathlib import Path
 
 import click
 
-from ..eye_link import Eyelink
-
 
 @click.command(name="track")
 @click.argument(
@@ -22,6 +20,8 @@ from ..eye_link import Eyelink
 @click.option("--screen", help="ID of the screen to use.", type=int)
 def run(dir: Path, fname: Path, screen: int) -> None:  # noqa: A002
     """Run track() command."""
+    from ..eye_link import Eyelink
+
     eye_link = Eyelink(dir, fname, screen=screen)
     eye_link.calibrate()
     eye_link.win.close()

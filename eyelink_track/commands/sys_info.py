@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import click
 
-from .. import sys_info
-
 
 @click.command(name="sys-info")
 @click.option(
@@ -13,4 +11,6 @@ from .. import sys_info
 )
 def run(developer: bool) -> None:
     """Run sys_info() command."""
+    from .. import sys_info
+
     sys_info(developer=developer)
