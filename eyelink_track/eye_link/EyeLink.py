@@ -46,7 +46,7 @@ class Eyelink:
         fname: str = "TEST",
         host_ip: str | None = "100.1.1.1",
         screen: int | None = None,
-        resolution : tuple[int, int] | None = None,
+        resolution: tuple[int, int] | None = None,
     ) -> None:
         pname = ensure_path(pname, must_exist=False)
         if not pname.exists():

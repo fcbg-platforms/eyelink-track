@@ -6,9 +6,20 @@ from pathlib import Path
 from pyglet.canvas import Display
 from qtpy.QtCore import QRegularExpression, Slot
 from qtpy.QtGui import QRegularExpressionValidator
-from qtpy.QtWidgets import (QAction, QComboBox, QFileDialog, QFormLayout,
-                            QHBoxLayout, QLineEdit, QMainWindow, QPushButton,
-                            QStatusBar, QStyle, QToolBar, QWidget)
+from qtpy.QtWidgets import (
+    QAction,
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QStatusBar,
+    QStyle,
+    QToolBar,
+    QWidget,
+)
 
 from .eye_link import Eyelink
 from .utils._checks import check_type

@@ -1,32 +1,28 @@
-import argparse
+from __future__ import annotations
+
 from datetime import datetime
 from pathlib import Path
+
+import click
 
 from ..eye_link import Eyelink
 
 
-def run():
+@click.command(name="track")
+@click.argument(
+    "dir",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False, path_type=Path),
+    default=Path.cwd(),
+)
+@click.argument(
+    "fname",
+    type=click.Path(exists=False, dir_okay=False, file_okay=True, path_type=Path),
+    default=datetime.now().strftime("%H%M%S"),
+)
+@click.option("--screen", help="ID of the screen to use.", type=int)
+def run(dir: Path, fname: Path, screen: int) -> None:
     """Run track() command."""
-    parser = argparse.ArgumentParser(
-        prog=f"{__package__.split('.')[0]}-sys_info", description="track"
-    )
-    parser.add_argument(
-        "dir",
-        type=str,
-        help="path to the directory where the file is saved.",
-        default=Path.cwd(),
-        nargs="?",
-    )
-    parser.add_argument(
-        "fname",
-        type=str,
-        help="name of the EDF file.",
-        default=datetime.now().strftime("%H%M%S"),
-        nargs="?",
-    )
-    args = parser.parse_args()
-
-    eye_link = Eyelink(args.dir, args.fname)
+    eye_link = Eyelink(dir, fname, screen=screen)
     eye_link.calibrate()
     eye_link.win.close()
     eye_link.start()
