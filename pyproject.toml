@@ -38,7 +38,7 @@ maintainers = [
 name = 'eyelink_track'
 readme = 'README.md'
 requires-python = '==3.10.*'
-version = '0.4.0.dev0'
+version = '0.4.0'
 
 [project.gui-scripts]
 eyelink_track-gui = 'eyelink_track.commands.gui:run'
