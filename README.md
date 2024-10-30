@@ -9,9 +9,18 @@
 Standalone program to calibrate an EyeLink 1000 Plus system and to start the recording
 on the stimulation PC.
 
+## Install instruction
+
+If installed with [uv](https://docs.astral.sh/uv/), psychopy, wxPython and pylink will
+correctly get fetched.
+
+```
+uv pip install git+https://github.com/fcbg-platforms/eyelink-track
+```
+
 ## Requirements
 
-Requires python 3.9 or above and the `pylink` library.
+Requires python 3.10 and the `pylink` library.
 
 ```
 python -m pip install --index-url=https://pypi.sr-support.com sr-research-pylink
