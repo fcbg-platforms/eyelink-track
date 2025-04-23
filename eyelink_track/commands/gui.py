@@ -17,3 +17,7 @@ def run(mock: bool) -> None:
     app = QApplication([])
     window = GUI(mock)  # noqa: F841
     app.exec()
+
+
+if __name__ == "__main__":
+    run()

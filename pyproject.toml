@@ -53,6 +53,7 @@ all = [
 build = [
   'build',
   'twine',
+  'pyinstaller',
 ]
 full = [
   'eyelink_track[all]',
