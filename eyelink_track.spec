@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['eyelink_track/commands/gui.py/__main__.py'],
+    ['eyelink_track/commands/gui.py'],
     pathex=[],
     binaries=[],
     datas=[
