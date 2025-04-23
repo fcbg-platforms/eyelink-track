@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='allhere',
+    name='eyelink_track',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
