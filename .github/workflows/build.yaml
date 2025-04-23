@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu, windows]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
