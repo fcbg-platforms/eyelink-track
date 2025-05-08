@@ -17,7 +17,7 @@ def run(fname: Path, screen: int) -> None:
     """Run track() command."""
     from ..eye_link import Eyelink
 
-    eye_link = Eyelink(fname.parent, fname.name, screen=screen)
+    eye_link = Eyelink(pname=fname.parent, fname=fname.name, screen=screen)
     eye_link.calibrate()
     eye_link.win.close()
     eye_link.start()
