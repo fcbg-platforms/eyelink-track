@@ -84,7 +84,7 @@ class GUI(QMainWindow):
         resolution = self.centralWidget().findChildren(QComboBoxScreen)[0].resolution
         # start eye-tracker
         kwargs = dict(host_ip=None) if self._mock else dict()
-        self.eye_link = Eyelink(directory, fname, screen, resolution, **kwargs)
+        self.eye_link = Eyelink(pname=directory, fname=fname, screen=screen, resolution=resolution, **kwargs)
         if not self._mock:
             self.statusBar().showMessage("[Calibrating..]")
             self.eye_link.calibrate()
