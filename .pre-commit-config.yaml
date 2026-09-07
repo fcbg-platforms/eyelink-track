@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.14.14
+      rev: v0.16.6
       hooks:
           - id: ruff
             name: ruff linter
@@ -9,13 +9,13 @@ repos:
             name: ruff formatter
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.4.1
+      rev: v2.4.3
       hooks:
           - id: codespell
             additional_dependencies: [tomli]
 
     - repo: https://github.com/pappasam/toml-sort
-      rev: v0.24.3
+      rev: v0.24.4
       hooks:
           - id: toml-sort-fix
             files: pyproject.toml
