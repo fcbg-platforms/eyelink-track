@@ -18,6 +18,7 @@ classifiers = [
 dependencies = [
   'click',
   'numpy>=1.21,<2',
+  'stimuli',
   'packaging',
   'psutil',
   'psychopy',
