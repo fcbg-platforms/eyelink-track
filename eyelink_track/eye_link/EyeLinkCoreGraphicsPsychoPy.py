@@ -25,10 +25,10 @@ import sys
 import numpy
 import psychopy
 import pylink
+import stimuli
 from PIL import Image, ImageDraw
 from psychopy import core, event, logging, visual
 from psychopy.tools.coordinatetools import pol2cart
-from stimuli.trigger import ParallelPortTrigger
 
 # Show only critical log message in the console
 logging.console.setLevel(logging.CRITICAL)
@@ -46,12 +46,12 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
         self._version = "2021.3.31"
         self._last_updated = "2026.10.30"
-        
+
         # Triggers on calibration dots
         self._cal_trigger_map = None
         # self._trigger_port = None
         self._trigger = None
-        
+
         # Calibration background color and target color
         self._backgroundColor = win.color
         self._foregroundColor = "black"
@@ -184,12 +184,12 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
     def getBackgroundColor(self):
         """Get the foreground color."""
         return self._backgroundColor
-    
+
     def setCalibrationTriggers(self, mapping, trigger_port):
         self._cal_trigger_map = mapping
         # self._trigger_port = trigger_port
-        self._trigger = ParallelPortTrigger(trigger_port)
-    
+        self._trigger = stimuli.trigger.ParallelPortTrigger(trigger_port)
+
     def setCalibrationColors(self, foreground_color, background_color):
         """Set calibration background and foreground colors.
 
@@ -344,9 +344,9 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self.clear_cal_display()
         xVis = x - self._w / 2.0
         yVis = self._h / 2.0 - y
-        
+
         trigger_value = self._get_trigger_for_position(x, y)
-        
+
         # Update the target position
         if self._calTarget == "circle":
             self._tarOuter.pos = (xVis, yVis)
@@ -376,24 +376,24 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
     def _send_cal_trigger(self, x, y, value):
         self._trigger.signal(value)
         msg = f"CAL_DOT_{value} X={x} Y={y}"
-        self.tracker.sendMessage(msg)
+        self._tracker.sendMessage(msg)
         print(msg)
 
     def _get_trigger_for_position(self, x, y, grid=(3,3)):
         if self._cal_trigger_map is not None:
             width, height = self._display.size
             n_rows, n_cols = grid
-        
+
             if n_rows < 1 or n_cols < 1:
                 raise ValueError("n_rows and n_cols must be positive")
-       
+
             col = min(n_cols - 1, max(0, int(n_cols * x / self._w)))
             row = min(n_rows - 1, max(0, int(n_rows * y / self._h)))
-        
+
             # Trigger values
             return self._cal_trigger_map[(row,col)]
         return None
-    
+
 
     def getColorFromIndex(self, colorindex):
         """Return psychopy colors for elements in the camera image."""
@@ -664,9 +664,3 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
     def play_beep(*args, **kwargs):
         """Dummy play_beep method."""  # noqa: D401
-
-
-
-    
-    
-    
