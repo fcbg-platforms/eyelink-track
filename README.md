@@ -9,6 +9,8 @@
 Standalone program to calibrate an EyeLink 1000 Plus system and to start the recording
 on the stimulation PC.
 
+This dev version sends LPT triggers on calibration dots.
+
 ## Install instruction
 
 If installed with [uv](https://docs.astral.sh/uv/), psychopy, wxPython and pylink will
