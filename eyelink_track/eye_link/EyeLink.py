@@ -8,7 +8,7 @@ from psychopy import logging
 from psychopy.event import waitKeys
 from psychopy.visual import TextStim, Window
 
-from ..config import FOREGROUND_COLOR, HOST_IP, SCREEN_KWARGS
+from ..config import FOREGROUND_COLOR, HOST_IP, SCREEN_KWARGS, LPT_ADDRESS, CAL_TRIGGER_MAP
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
@@ -156,18 +156,8 @@ class Eyelink:
         self.genv.setTargetType("circle")
         self.genv.setTargetSize(24)
         self.genv.setCalibrationTriggers(
-            mapping={
-                (0, 0): 1,
-                (0, 1): 2,
-                (0, 2): 3,
-                (1, 0): 4,
-                (1, 1): 5,
-                (1, 2): 6,
-                (2, 0): 7,
-                (2, 1): 8,
-                (2, 2): 9,
-            },
-            trigger_port=0x2FB8,
+            mapping=CAL_TRIGGER_MAP,
+            trigger_port=LPT_ADDRESS,
         )
 
 
