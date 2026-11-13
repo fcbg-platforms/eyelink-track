@@ -1,20 +1,33 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
+import time
+from datetime import datetime
+from pathlib import Path
 
 import pylink
 from psychopy import logging
-from psychopy.event import waitKeys
+from psychopy.event import clearEvents, getKeys, waitKeys
 from psychopy.visual import TextStim, Window
 
-from ..config import FOREGROUND_COLOR, HOST_IP, SCREEN_KWARGS, LPT_ADDRESS, CAL_TRIGGER_MAP
+from ..config import (
+    CAL_TRIGGER_MAP,
+    FOREGROUND_COLOR,
+    HOST_IP,
+    LPT_ADDRESS,
+    PHOTODIODE_COLOR,
+    PHOTODIODE_CORNER,
+    PHOTODIODE_SIZE,
+    PHOTODIODE_FRAMES,
+    SCREEN_KWARGS,
+    START_KEY,
+    START_TTL_ACTIVE_HIGH,
+    START_TTL_PIN,
+)
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
+from ..utils.start_trigger import wait_for_start
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 # set psychopy log level
 logging.console.setLevel(logging.CRITICAL)
@@ -38,6 +51,18 @@ class Eyelink:
         IDx of the screen to use.
     resolution : tuple | None
         Resolution of the screen to set.
+    photodiode : bool
+        If True, a photodiode patch is drawn with each calibration target.
+    final_fname : str | None
+        If provided, the downloaded EDF file is renamed to this file name (in
+        ``pname``) once the recording is stopped. Used to work around the 8-character
+        limit of the EyeLink Host.
+    trigger : object | None
+        Object with a ``signal(value)`` method sending the calibration triggers. If
+        None, the parallel port ``LPT_ADDRESS`` is opened.
+    timing : callable | None
+        Callable ``(event, t, **fields)`` receiving the display, trigger and start
+        times (``time.perf_counter``), e.g. a :class:`~.mock.TimingLog`.
     """
 
     def __init__(
@@ -47,11 +72,22 @@ class Eyelink:
         host_ip: str | None = HOST_IP,
         screen: int | None = None,
         resolution: tuple[int, int] | None = None,
+        photodiode: bool = False,
+        final_fname: str | None = None,
+        trigger=None,
+        timing=None,
     ) -> None:
         pname = ensure_path(pname, must_exist=False)
         if not pname.exists():
             os.makedirs(pname)
         self.edf_pname = pname
+        check_type(photodiode, (bool,), "photodiode")
+        check_type(final_fname, (str, None), "final_fname")
+        self.final_edf = None if final_fname is None else pname / final_fname
+        if self.final_edf is not None and self.final_edf.exists():
+            raise FileExistsError(f"{self.final_edf} already exists.")
+        self._timing = timing
+        self.t0 = None  # start trigger time (time.perf_counter), once received
         check_type(fname, (str,), "fname")
         if fname.endswith(".EDF"):
             fname = fname.split(".EDF")[0]
@@ -158,8 +194,16 @@ class Eyelink:
         self.genv.setCalibrationTriggers(
             mapping=CAL_TRIGGER_MAP,
             trigger_port=LPT_ADDRESS,
+            trigger=trigger,
         )
-
+        self.genv.setTimingLog(timing)
+        if photodiode:
+            self.genv.setPhotodiode(
+                size=PHOTODIODE_SIZE,
+                corner=PHOTODIODE_CORNER,
+                color=PHOTODIODE_COLOR,
+                frames=PHOTODIODE_FRAMES,
+            )
 
         pylink.openGraphicsEx(self.genv)
 
@@ -185,26 +229,111 @@ class Eyelink:
             waitKeys()
             self.clear_screen()
 
-    def calibrate(self):
-        """Run the calibration."""
-        # Show the task instructions
-        task_msg = "\nPress ENTER twice to display tracker menu."
+    def calibrate(self, wait_for_trigger: bool = False) -> bool:
+        """Run the calibration.
+
+        Parameters
+        ----------
+        wait_for_trigger : bool
+            If True, the tracker setup starts on the start key or on a TTL (see
+            START_KEY and START_TTL_PIN in config.py) instead of on any key.
+
+        Returns
+        -------
+        started : bool
+            False if the wait for the start trigger was aborted with Escape.
+        """
         self.win.winHandle.activate()
-        self.show_msg(task_msg)
+        if wait_for_trigger:
+            self.show_msg("Waiting for the start trigger...", wait_for_keypress=False)
+            if self.wait_for_trigger() is None:
+                return False
+            self.clear_screen()
+        else:
+            # Show the task instructions
+            task_msg = "\nPress ENTER twice to display tracker menu."
+            self.show_msg(task_msg)
         try:
             self.el_tracker.doTrackerSetup()
         except RuntimeError:
             self.el_tracker.exitCalibration()
             self.close()
             raise
+        return True
+
+    def wait_for_trigger(
+        self,
+        key: str = START_KEY,
+        ttl_pin: int | None = START_TTL_PIN,
+        active_high: bool = START_TTL_ACTIVE_HIGH,
+    ) -> str | None:
+        """Wait for the start key or a TTL on the LPT port, whichever comes first.
+
+        Parameters
+        ----------
+        key : str
+            PsychoPy name of the start key.
+        ttl_pin : int | None
+            Status pin of the LPT port receiving the TTL. None to only use the key.
+        active_high : bool
+            If True, a low to high edge on the pin starts the calibration.
+
+        Returns
+        -------
+        source : str | None
+            ``"key"`` or ``"ttl"``, or None if aborted with Escape.
+        """
+        read_pin = None
+        if ttl_pin is not None:
+            ttl_pin = ensure_int(ttl_pin, "ttl_pin")
+            read_pin = self.genv.getInputPinReader(ttl_pin)
+        logger.info(
+            "Waiting for the start key '%s'%s. Press Escape to abort.",
+            key,
+            "" if ttl_pin is None else f" or a TTL on LPT pin {ttl_pin}",
+        )
+        clearEvents()
+        if self._timing is not None:
+            self._timing("WAIT_START", time.perf_counter())
+        source = wait_for_start(
+            poll_keys=lambda: getKeys(keyList=[key, "escape"]),
+            key=key,
+            read_pin=read_pin,
+            active_level=int(active_high),
+        )
+        if source is None:
+            logger.info("Wait for the start trigger aborted.")
+            return None
+        # t=0, on the stimulus PC clock. The message is sent right away so that its
+        # EDF timestamp (tracker clock) is as close as possible to the trigger.
+        t0 = time.perf_counter()
+        wallclock = datetime.now().astimezone().isoformat(timespec="microseconds")
+        self.el_tracker.sendMessage(
+            f"START_TRIGGER {source.upper()} T_REL_MS=0.000 WALLCLOCK={wallclock}"
+        )
+        self.t0 = t0
+        if self._timing is not None:
+            self._timing("START_TRIGGER", t0, source=source)
+        self.genv.setTimeZero(t0)
+        # later triggers (e.g. one per MRI volume) must not reach the tracker setup
+        self.genv.setIgnoredKeys([key])
+        self.genv.flashPhotodiode()  # logs START_PHOTODIODE
+        logger.info("Start trigger received (%s) at %s.", source, wallclock)
+        return source
 
     def start(self):
         """Start recording."""
         self.el_tracker.startRecording(1, 1, 1, 1)
         self.el_tracker.sendMessage("START")
 
-    def stop(self):
-        """Stop recording."""
+    def stop(self) -> Path:
+        """Stop recording, download the EDF file and rename it if requested.
+
+        Returns
+        -------
+        path : Path
+            Path to the local EDF file.
+        """
         self.el_tracker.stopRecording()
         self.el_tracker.setOfflineMode()
 
@@ -216,13 +345,37 @@ class Eyelink:
         self.el_tracker.closeDataFile()
         # Download the EDF data file from the Host PC to a local data folder
         # parameters: source_file_on_the_host, destination_file_on_local_drive
-        local_edf = str(self.edf_pname / (self.edf_fname + ".EDF"))
+        local_edf = self.edf_pname / (self.edf_fname + ".EDF")
         try:
-            self.el_tracker.receiveDataFile(self.edf_fname + ".EDF", local_edf)
+            self.el_tracker.receiveDataFile(self.edf_fname + ".EDF", str(local_edf))
         except RuntimeError:
             raise
         finally:
             self.close()
+        return self._rename_edf(local_edf)
+
+    def _rename_edf(self, local_edf: Path) -> Path:
+        """Rename the downloaded EDF file to its final name, never overwriting."""
+        if self.final_edf is None:
+            return local_edf
+        if not local_edf.exists():
+            logger.error(
+                "The EDF file was not downloaded to %s. It is still on the EyeLink "
+                "Host as %s.EDF.",
+                local_edf,
+                self.edf_fname,
+            )
+            return local_edf
+        if self.final_edf.exists():
+            logger.error(
+                "%s already exists. The recording was kept as %s.",
+                self.final_edf,
+                local_edf,
+            )
+            return local_edf
+        local_edf.rename(self.final_edf)
+        logger.info("Recording saved as %s.", self.final_edf)
+        return self.final_edf
 
     def signal(self, value: str):
         """Send a trigger signal."""

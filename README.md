@@ -54,5 +54,65 @@ PsychoPy requires wxPython, which can be difficult to compile from source on lin
 Wheels are available here: https://extras.wxpython.org/wxPython4/extras/linux/gtk3/
 
 ## Config.py
-Set constants in this file
+Set constants in this file: this is where port should be specified, as well as trigger signals.
 
+## Calibration without the GUI
+
+We support a GUI-less calibration step. This calibration allows to open directly the calibration software and will await a start signal to be MRI-compatible. It also supports a photodiode, which will flash when the start key is pressed, and afterwards at every
+fixation trigger.
+
+```
+eyetrack_calibration --subject 01 --session 1 --run 1 [--task rest] [--photodiode]
+# or, from a clone of this repository:
+python eyetrack_calibration.py --subject 01 --session 1 --run 1
+```
+
+With `--subject`, `--session` and `--run`, the GUI is skipped:
+
+1. The program waits for the start key (`START_KEY`) or a TTL on the parallel port
+   (`START_TTL_PIN`), whichever comes first. Escape aborts. This first trigger is
+   t=0: it is written to the EDF as
+   `START_TRIGGER <KEY|TTL> T_REL_MS=0.000 WALLCLOCK=<ISO date>`, and each
+   `CAL_DOT_<n> X=.. Y=..` message gets `T_REL_MS=<ms since t=0>`, measured on the
+   stimulus PC clock at the flip showing the target. With `--photodiode`, the patch
+   also flashes once at t=0 (`START_PHOTODIODE T_REL_MS=..`). Later triggers, e.g.
+   one per MRI volume, are ignored, and the start key is not passed to the setup.
+2. The tracker setup opens (C: calibrate, V: validate, O: start recording).
+3. The recording runs until ENTER is pressed in the terminal.
+4. The EDF file, recorded on the EyeLink Host under a random 6-digit name, is
+   downloaded and renamed to `sub-01_ses-1[_task-rest]_run-1_eyetrack.edf` in
+   `--directory` (default: current directory). Existing files are never overwritten.
+
+Without these options, the GUI opens. `--photodiode` also works with
+`eyelink_track gui` and `eyelink_track track`.
+
+The TTL must arrive on a status pin of `LPT_ADDRESS` (10, 11, 12, 13 or 15; ground
+on 18-25), since the data pins send the calibration triggers. The calibration starts
+on the edge into the active level (`START_TTL_ACTIVE_HIGH`), so a pin resting at that
+level does not start it. Set `START_TTL_PIN = None` to use the key only.
+
+## Testing without the eye-tracker
+
+```
+eyetrack_calibration --subject test --session 1 --run 1 --mock --no-lpt --loopback 3 --photodiode
+```
+
+- `--mock`: no EyeLink Host needed. A 9-point calibration (random order, 1 s per
+  target) runs through the real display and trigger code, and the messages are
+  written to `sub-test_ses-1_run-1_eyetrack_mock.asc`, in the format of `edf2asc`
+  (no gaze samples). Mock outputs are overwritten. Escape stops the calibration.
+- `--no-lpt`: no parallel port needed. The codes are logged instead of sent, and data
+  pin 2 is looped back to the TTL input.
+- `--loopback SECONDS`: sends the start TTL (code 1, data pin 2) after SECONDS. On a
+  real port, wire data pin 2 to `START_TTL_PIN` to test the TTL input end to end.
+  Without `--loopback`, start with `START_KEY`.
+- `--timing-log` (implied by `--mock`): writes `<name>_timing.tsv` with the start
+  trigger, photodiode flash, target onsets/offsets and LPT writes on one clock, and
+  prints a summary. Also usable on real runs.
+
+To check the timing messages of a real recording, convert it with `edf2asc` (EyeLink
+Developers Kit) and run `eyelink_track check-asc <file>.asc`: it compares `T_REL_MS`,
+measured on the stimulus PC, with the EDF timestamps relative to `START_TRIGGER`.
+
+The actual photodiode onset relative to the LPT codes can only be measured with the
+photodiode and the codes recorded on the same device (EEG/MEG amplifier, scope).

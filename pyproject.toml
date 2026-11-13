@@ -73,6 +73,7 @@ test = [
 
 [project.scripts]
 eyelink_track = 'eyelink_track.commands.main:run'
+eyetrack_calibration = 'eyelink_track.commands.calibration:run'
 
 [project.urls]
 source = 'https://github.com/fcbg-platforms/eyelink-track'

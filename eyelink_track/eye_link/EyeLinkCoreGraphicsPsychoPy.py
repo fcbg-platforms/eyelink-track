@@ -21,6 +21,7 @@ import os
 import platform
 import string
 import sys
+import time
 
 import numpy
 import psychopy
@@ -51,6 +52,18 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._cal_trigger_map = None
         # self._trigger_port = None
         self._trigger = None
+
+        # Photodiode patch drawn with each calibration target (None = disabled)
+        self._photodiode = None
+        self._pd_frames = 2
+        self._pd_left = 0
+        self._pd_active = False
+        # Start trigger time (time.perf_counter), origin of T_REL_MS in the messages
+        self._t0 = None
+        # Keys not passed to the tracker (e.g. repeated scanner trigger keys)
+        self._ignored_keys = set()
+        # Optional callable(event, t, **fields) logging display/trigger timings
+        self._timing = None
 
         # Calibration background color and target color
         self._backgroundColor = win.color
@@ -185,10 +198,154 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         """Get the foreground color."""
         return self._backgroundColor
 
-    def setCalibrationTriggers(self, mapping, trigger_port):
+    def setCalibrationTriggers(self, mapping, trigger_port, trigger=None):
+        """Set the trigger codes and the port sending them.
+
+        If trigger is provided (an object with a signal(value) method), it is used
+        instead of opening trigger_port, e.g. a mock parallel port.
+        """
         self._cal_trigger_map = mapping
         # self._trigger_port = trigger_port
-        self._trigger = stimuli.trigger.ParallelPortTrigger(trigger_port)
+        if trigger is None:
+            trigger = stimuli.trigger.ParallelPortTrigger(trigger_port)
+        self._trigger = trigger
+
+    def setTimingLog(self, timing):
+        """Set a callable(event, t, **fields) receiving display and trigger times."""
+        self._timing = timing
+
+    def _log_timing(self, event, t, **fields):
+        if self._timing is not None:
+            self._timing(event, t, **fields)
+
+    def getInputPinReader(self, pin):
+        """Return a function reading an input (status) pin of the trigger LPT port.
+
+        The port opened for the calibration triggers is reused: opening the same
+        parallel port a second time would require claiming it while this object
+        holds it.
+
+        Parameters
+        ----------
+        pin : int
+            One of the status pins 10, 11, 12, 13, 15.
+        """
+        if pin not in (10, 11, 12, 13, 15):
+            raise ValueError(
+                f"TTL input pin must be a status pin (10, 11, 12, 13, 15), got {pin}."
+            )
+        port = getattr(self._trigger, "_port", None)
+        if getattr(self._trigger, "port_type", None) != "pport" or not hasattr(
+            port, "readPin"
+        ):
+            raise RuntimeError(
+                "Reading a TTL requires the calibration triggers to use a built-in "
+                "parallel port (LPT_ADDRESS in config.py)."
+            )
+        return lambda: port.readPin(pin)
+
+    def setPhotodiode(self, size, corner="top-right", color=(1, 1, 1), frames=2):
+        """Draw a photodiode patch in a screen corner together with each target.
+
+        The patch is drawn in the same flip as the calibration/validation/drift-check
+        target (so it shares the flip with the TTL sent via callOnFlip) and disappears
+        when the target is erased.
+
+        Parameters
+        ----------
+        size : int
+            Side of the square patch, in pixels.
+        corner : str
+            One of "top-left", "top-right", "bottom-left", "bottom-right". Must match
+            where the sensor is mounted.
+        color :
+            Patch color when the target is on screen (PsychoPy rgb, -1..1).
+        """
+        if not isinstance(frames, int) or frames < 1:
+            raise ValueError(f"frames must be a positive integer, got {frames!r}.")
+        self._pd_frames = frames
+        valid = ("top-left", "top-right", "bottom-left", "bottom-right")
+        if corner not in valid:
+            raise ValueError(f"corner must be one of {valid}, got {corner!r}.")
+        vert, horiz = corner.split("-")
+        # Window units are forced to 'pix' with the origin at the screen center
+        x = (self._w - size) / 2.0 * (1 if horiz == "right" else -1)
+        y = (self._h - size) / 2.0 * (1 if vert == "top" else -1)
+        self._photodiode = visual.Rect(
+            self._display,
+            width=size,
+            height=size,
+            pos=(x, y),
+            fillColor=color,
+            lineColor=color,
+            units="pix",
+            autoLog=False,
+        )
+
+    def _start_photodiode_pulse(self):
+        """Start a pulse: the patch is drawn for the next _pd_frames frames."""
+        if self._photodiode is not None:
+            self._pd_left = self._pd_frames
+            self._pd_active = True
+
+    def _draw_photodiode(self):
+        """Draw the patch if a pulse is running. Returns True if it was drawn."""
+        if self._photodiode is None or self._pd_left <= 0:
+            return False
+        self._photodiode.draw()
+        self._pd_left -= 1
+        return True
+
+    def _end_photodiode_pulse(self, t):
+        """Log the flip that removed the patch, once per pulse."""
+        if self._pd_active:
+            self._pd_active = False
+            self._log_timing("PHOTODIODE_OFF", t)
+
+    def _finish_photodiode_pulse(self, draw_content):
+        """Flip the rest of the pulse, then one frame without the patch."""
+        if not self._pd_active:
+            return
+        while self._pd_left > 0:
+            draw_content()
+            self._draw_photodiode()
+            self._display.flip()
+        draw_content()
+        self._display.flip()
+        self._end_photodiode_pulse(time.perf_counter())
+
+    def flashPhotodiode(self, message="START_PHOTODIODE"):
+        """Show the photodiode patch alone for duration seconds, if enabled.
+
+        The message, with T_REL_MS if the time origin is set, is sent to the tracker
+        right after the flip showing the patch.
+
+        Returns
+        -------
+        t_flip : float | None
+            time.perf_counter() right after the flip showing the patch, or None if
+            the photodiode is disabled.
+        """
+        if self._photodiode is None:
+            return None
+        self._start_photodiode_pulse()
+        self._draw_photodiode()
+        self._display.flip()
+        t_flip = time.perf_counter()
+        if self._t0 is not None:
+            message += f" T_REL_MS={(t_flip - self._t0) * 1000:.3f}"
+        self._tracker.sendMessage(message)
+        self._log_timing("FLASH_ON", t_flip)
+        self._finish_photodiode_pulse(lambda: None)
+        return t_flip
+
+    def setTimeZero(self, t0):
+        """Set the time origin (time.perf_counter) of T_REL_MS in the messages."""
+        self._t0 = t0
+
+    def setIgnoredKeys(self, keys):
+        """Set PsychoPy key names that are not passed to the tracker."""
+        self._ignored_keys = set(keys)
 
     def setCalibrationColors(self, foreground_color, background_color):
         """Set calibration background and foreground colors.
@@ -333,7 +490,11 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._calibTar.pause()
         except Exception:
             pass
-        self.clear_cal_display()
+        self.clear_cal_display()  # this flip removes the target and photodiode patch
+        t_off = time.perf_counter()
+        self._pd_left = 0  # target erased before the end of the pulse
+        self._end_photodiode_pulse(t_off)
+        self._log_timing("TARGET_OFF", t_off)
         self._animatedTarget = False
         self._display.flip()
 
@@ -359,23 +520,38 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
         # Handle the drawing
         self._display.callOnFlip(self._send_cal_trigger, x, y, trigger_value)
+        self._start_photodiode_pulse()
         if self._calTarget in ["spiral", "movie"]:
-            # Hand over drawing to get_input_key()
+            # Hand over drawing to get_input_key(), which also runs the pulse
             self._animatedTarget = True
             if self._calTarget == "movie":
                 if self._calibTar is not None:
                     self._calibTar.play()
-        elif self._calTarget == "picture":
+        else:
+            self._draw_static_target()
+            self._draw_photodiode()
+            self._display.flip()  # target onset, LPT code sent on this flip
+            # keep the patch for the rest of the pulse, then the target alone
+            self._finish_photodiode_pulse(self._draw_static_target)
+
+    def _draw_static_target(self):
+        """Draw the circle or picture target into the back buffer."""
+        if self._calTarget == "picture":
             self._calibTar.draw()
-            self._display.flip()
         else:
             self._tarOuter.draw()
             self._tarInner.draw()
-            self._display.flip()
 
     def _send_cal_trigger(self, x, y, value):
+        # Called right after the flip showing the target (callOnFlip)
+        t_flip = time.perf_counter()
         self._trigger.signal(value)
+        t_lpt = time.perf_counter()
+        self._log_timing("TARGET_ON", t_flip, code=value, x=x, y=y)
+        self._log_timing("LPT_OUT", t_lpt, code=value)
         msg = f"CAL_DOT_{value} X={x} Y={y}"
+        if self._t0 is not None:
+            msg += f" T_REL_MS={(t_flip - self._t0) * 1000:.3f}"
         self._tracker.sendMessage(msg)
         print(msg)
 
@@ -500,10 +676,15 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             if self._calTarget == "spiral":
                 self._calibTar.phases -= 0.02
             self._calibTar.draw()
+            drawn = self._draw_photodiode()
             self._display.flip()
+            if not drawn:
+                self._end_photodiode_pulse(time.perf_counter())
 
         ky = []
         for keycode, modifier in event.getKeys(modifiers=True):
+            if keycode in self._ignored_keys:
+                continue
             self._display.mouseVisible = False  # set mouse cursor invisible
             k = pylink.JUNK_KEY
             if keycode == "f1":

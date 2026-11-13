@@ -32,11 +32,15 @@ class GUI(QMainWindow):
     ----------
     mock : bool
         If True, uses a mock eye-tracker.
+    photodiode : bool
+        If True, a photodiode patch is drawn with each calibration target.
     """
 
-    def __init__(self, mock: bool) -> None:
+    def __init__(self, mock: bool, photodiode: bool = False) -> None:
         check_type(mock, (bool,), "mock")
+        check_type(photodiode, (bool,), "photodiode")
         self._mock = mock
+        self._photodiode = photodiode
         super().__init__()
         self.setCentralWidget(CentralWidget())
         # tool bar
@@ -85,7 +89,12 @@ class GUI(QMainWindow):
         # start eye-tracker
         kwargs = dict(host_ip=None) if self._mock else dict()
         self.eye_link = Eyelink(
-            pname=directory, fname=fname, screen=screen, resolution=resolution, **kwargs
+            pname=directory,
+            fname=fname,
+            screen=screen,
+            resolution=resolution,
+            photodiode=self._photodiode,
+            **kwargs,
         )
         if not self._mock:
             self.statusBar().showMessage("[Calibrating..]")

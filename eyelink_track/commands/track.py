@@ -13,11 +13,18 @@ import click
     default=Path.cwd() / datetime.now().strftime("%H%M%S"),
 )
 @click.option("--screen", help="ID of the screen to use.", type=int, default=0)
-def run(fname: Path, screen: int) -> None:
+@click.option(
+    "--photodiode",
+    help="Draw a photodiode patch with each calibration target.",
+    is_flag=True,
+)
+def run(fname: Path, screen: int, photodiode: bool) -> None:
     """Run track() command."""
     from ..eye_link import Eyelink
 
-    eye_link = Eyelink(pname=fname.parent, fname=fname.name, screen=screen)
+    eye_link = Eyelink(
+        pname=fname.parent, fname=fname.name, screen=screen, photodiode=photodiode
+    )
     eye_link.calibrate()
     eye_link.win.close()
     eye_link.start()
