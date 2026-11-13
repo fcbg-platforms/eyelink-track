@@ -20,6 +20,16 @@ correctly get fetched.
 uv pip install git+https://github.com/fcbg-platforms/eyelink-track@dev_cal_triggers
 ```
 
+Or:
+```
+git clone https://github.com/fcbg-platforms/eyelink-track.git
+cd eyelink-track
+uv venv --python 3.11
+source .venv/bin/activate
+uv pip install sr-research-pylink==2.2.596.0
+uv pip install -e ".[test]"
+```
+
 ## Requirements
 
 Requires python 3.11 and the `pylink` library.
