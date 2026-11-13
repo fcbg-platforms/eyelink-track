@@ -30,6 +30,7 @@ import stimuli
 from PIL import Image, ImageDraw
 from psychopy import core, event, logging, visual
 from psychopy.tools.coordinatetools import pol2cart
+from ..utils.logs import logger
 
 # Show only critical log message in the console
 logging.console.setLevel(logging.CRITICAL)
@@ -62,6 +63,8 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._t0 = None
         # Keys not passed to the tracker (e.g. repeated scanner trigger keys)
         self._ignored_keys = set()
+        self._setup_keys = []
+        self._setup_keys_deadline = 0.0
         # Optional callable(event, t, **fields) logging display/trigger timings
         self._timing = None
 
@@ -346,6 +349,28 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
     def setIgnoredKeys(self, keys):
         """Set PsychoPy key names that are not passed to the tracker."""
         self._ignored_keys = set(keys)
+        
+    def pressKeysInSetup(self, keys, timeout=5.0):
+        """Press keys (PsychoPy names) as soon as the tracker is in its setup menu."""
+        self._setup_keys = list(keys)
+        self._setup_keys_deadline = time.perf_counter() + timeout
+
+    def _pop_setup_keys(self):
+        """Return the pending setup keys as (keycode, modifier) once in setup mode."""
+        if not self._setup_keys:
+            return []
+        if self._setup_keys_deadline < time.perf_counter():
+            logger.warning(
+                "Tracker setup menu not reached, keys not pressed: %s", self._setup_keys
+            )
+            self._setup_keys = []
+            return []
+        if self._tracker.getCurrentMode() != pylink.IN_SETUP_MODE:
+            return []
+        keys, self._setup_keys = self._setup_keys, []
+        self._log_timing("SETUP_KEYS", time.perf_counter(), keys=",".join(keys))
+        no_modifier = {"alt": False, "ctrl": False, "shift": False}
+        return [(key, dict(no_modifier)) for key in keys]
 
     def setCalibrationColors(self, foreground_color, background_color):
         """Set calibration background and foreground colors.
@@ -682,7 +707,8 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
                 self._end_photodiode_pulse(time.perf_counter())
 
         ky = []
-        for keycode, modifier in event.getKeys(modifiers=True):
+        pressed = self._pop_setup_keys() + list(event.getKeys(modifiers=True))
+        for keycode, modifier in pressed:
             if keycode in self._ignored_keys:
                 continue
             self._display.mouseVisible = False  # set mouse cursor invisible

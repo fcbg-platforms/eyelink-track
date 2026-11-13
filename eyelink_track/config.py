@@ -49,6 +49,7 @@ START_KEY: str = "t"  # PsychoPy key name, e.g. "t", "5", "space"
 # The data pins 2-9 are outputs (calibration triggers). Set to None to disable TTL.
 START_TTL_PIN: int | None = 10
 START_TTL_ACTIVE_HIGH: bool = True  # trigger on a low->high edge (False: high->low)
+START_SETUP_KEYS: tuple[str, ...] = ("return",) # key which is used normally to access calibration by double enter
 
 # Recording file names. The EyeLink Host only accepts short names, so the file is
 # recorded under a random numeric name and renamed once downloaded:

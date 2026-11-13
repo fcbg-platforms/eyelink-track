@@ -96,7 +96,7 @@ def test_mock_tracker(tmp_path):
     timing = TimingLog()
     genv = _FakeGenv(keys=[ord("c")])
     dummy = _Dummy()
-    tracker = MockTracker(dummy, genv, timing, hold=0.02, gap=0)
+    tracker = MockTracker(dummy, genv, timing, hold=0.02, gap=0, menu=0)
     genv.tracker = tracker
     tracker.sendMessage("START_TRIGGER KEY T_REL_MS=0.000")
     tracker.doTrackerSetup()
@@ -125,7 +125,7 @@ def test_mock_tracker_escape():
     """Escape stops the mock calibration after erasing the current target."""
     timing = TimingLog()
     genv = _FakeGenv(keys=[27])
-    tracker = MockTracker(_Dummy(), genv, timing, hold=0.02, gap=0)
+    tracker = MockTracker(_Dummy(), genv, timing, hold=0.02, gap=0, menu=0)
     genv.tracker = tracker
     tracker.doTrackerSetup()
     assert genv.calls[1][0] == "draw"

@@ -155,13 +155,21 @@ class MockTracker:
     the tracker. Other calls go to the dummy connection.
     """
 
-    def __init__(self, tracker, genv, timing: TimingLog, hold=1.0, gap=0.5) -> None:
+    def __init__(self, tracker, genv, timing: TimingLog, hold=1.0, gap=0.5, menu=0.3) -> None:
         self._tracker = tracker
         self._genv = genv
         self._timing = timing
         self._hold = hold
         self._gap = gap
+        self._menu = menu
+        self._in_menu = False
         self._lines: list[str] = []
+        
+    def getCurrentMode(self) -> int:  # noqa: N802
+        """Return setup mode in the setup menu, target mode during the targets."""
+        import pylink
+
+        return pylink.IN_SETUP_MODE if self._in_menu else pylink.IN_TARGET_MODE
 
     def __getattr__(self, name):
         """Forward other calls to the dummy connection."""
@@ -206,6 +214,13 @@ class MockTracker:
             "Mock calibration: 9 targets, %.1f s each. Escape stops it.", self._hold
         )
         genv.setup_cal_display()
+        # setup menu, before the experimenter presses C: keys polled in setup mode
+        self._in_menu = True
+        go_on = self._poll_keys(self._menu)
+        self._in_menu = False
+        if not go_on:  # Escape in the menu leaves the setup
+            genv.exit_cal_display()
+            return
         for x, y in points:
             genv.draw_cal_target(x, y)
             go_on = self._poll_keys(self._hold)
@@ -229,9 +244,9 @@ class MockTracker:
         return True
 
 
-def install_mock_tracker(eye_link, timing: TimingLog, hold=1.0, gap=0.5):
+def install_mock_tracker(eye_link, timing: TimingLog, hold=1.0, gap=0.5, menu=0.3):
     """Replace the tracker connection of an Eyelink created with host_ip=None."""
-    mock = MockTracker(eye_link.el_tracker, eye_link.genv, timing, hold, gap)
+    mock = MockTracker(eye_link.el_tracker, eye_link.genv, timing, hold, gap, menu)
     eye_link.el_tracker = mock
     eye_link.genv._tracker = mock
     return mock
@@ -291,6 +306,9 @@ def summarize(timing: TimingLog) -> list[str]:
             f"delay): median {statistics.median(lpt_delays):.3f} ms, "
             f"max {max(lpt_delays):.3f} ms"
         )
+    auto = [row[2]["keys"] for row in rows if row[1] == "SETUP_KEYS"]
+    if auto:
+        lines.append(f"Keys pressed automatically in the setup menu: {', '.join(auto)}")
     keys = [row[2]["keys"] for row in rows if row[1] == "KEYS_TO_TRACKER"]
     if keys:
         lines.append(f"Keys that reached the tracker setup: {', '.join(keys)}")

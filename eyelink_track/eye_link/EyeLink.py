@@ -23,6 +23,7 @@ from ..config import (
     START_KEY,
     START_TTL_ACTIVE_HIGH,
     START_TTL_PIN,
+    START_SETUP_KEYS,
 )
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
@@ -249,6 +250,7 @@ class Eyelink:
             if self.wait_for_trigger() is None:
                 return False
             self.clear_screen()
+            self.genv.pressKeysInSetup(START_SETUP_KEYS) # Click to access the setup screen (enter manually normally)
         else:
             # Show the task instructions
             task_msg = "\nPress ENTER twice to display tracker menu."
