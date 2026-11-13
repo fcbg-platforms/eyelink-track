@@ -56,3 +56,15 @@ START_SETUP_KEYS: tuple[str, ...] = ("return",) # key which is used normally to 
 # sub-<subject>_ses-<session>[_task-<task>]_run-<run>_eyetrack.edf
 EDF_TEMP_DIGITS: int = 6
 EDF_SUFFIX: str = "eyetrack"
+
+# Physical screen geometry, sent to the EyeLink at startup. It overrides the Host's
+# PHYSICAL.INI for the session, and is used by the tracker to convert pixels to
+# degrees of visual angle (saccade/fixation detection, velocities). Measure the
+# visible display area (with a projector: the projected image). Also written to the
+# EDF as a SCREEN_GEOMETRY message. None keeps the Host's own settings.
+SCREEN_WIDTH_MM: float | None = None
+SCREEN_HEIGHT_MM: float | None = None
+# Eye to screen, in mm: one number = eye to the screen centre (converted to the eye
+# to top and bottom distances EyeLink expects), or (top, bottom) as measured, e.g.
+# for a tilted screen or a mirror in the scanner.
+SCREEN_DISTANCE_MM: float | tuple[float, float] | None = None

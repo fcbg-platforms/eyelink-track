@@ -24,9 +24,13 @@ from ..config import (
     START_TTL_ACTIVE_HIGH,
     START_TTL_PIN,
     START_SETUP_KEYS,
+    SCREEN_DISTANCE_MM,
+    SCREEN_HEIGHT_MM,
+    SCREEN_WIDTH_MM,
 )
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
+from ..utils.screen import screen_geometry_commands, screen_geometry_message
 from ..utils.start_trigger import wait_for_start
 from .EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
 
@@ -163,7 +167,7 @@ class Eyelink:
 
         # Choose a calibration type, H3, HV3, HV5, HV13
         # (HV = horizontal/vertical)
-        self.el_tracker.sendCommand("calibration_type = HV9")
+        #self.el_tracker.sendCommand("calibration_type = HV9")
         self.el_tracker.sendCommand("button_function 5 'accept_target_fixation'")
 
         # Step 4: set up a graphics environment for calibration
@@ -180,6 +184,31 @@ class Eyelink:
             "screen_pixel_coords = 0 0 " + f"{self.scn_width - 1} {self.scn_height - 1}"
         )
         self.el_tracker.sendCommand(el_coords)
+        
+                # Physical screen size and eye-to-screen distance (SCREEN_*_MM in config.py),
+        # used by the tracker for degrees of visual angle
+        for command in screen_geometry_commands(
+            SCREEN_WIDTH_MM, SCREEN_HEIGHT_MM, SCREEN_DISTANCE_MM
+        ):
+            logger.info("EyeLink command: %s", command)
+            self.el_tracker.sendCommand(command)
+        # Choose a calibration type, H3, HV3, HV5, HV13 (HV = horizontal/vertical).
+        # Sent after the screen coordinates so that the tracker computes the target
+        # positions for this screen.
+        self.el_tracker.sendCommand("calibration_type = HV9")
+        # Record the display in the EDF (DISPLAY_COORDS is read by Data Viewer)
+        self.el_tracker.sendMessage(
+            f"DISPLAY_COORDS 0 0 {self.scn_width - 1} {self.scn_height - 1}"
+        )
+        self.el_tracker.sendMessage(
+            screen_geometry_message(
+                self.scn_width,
+                self.scn_height,
+                SCREEN_WIDTH_MM,
+                SCREEN_HEIGHT_MM,
+                SCREEN_DISTANCE_MM,
+            )
+        )
 
         # Configure a graphics environment (genv) for tracker calibration
         self.genv = EyeLinkCoreGraphicsPsychoPy(self.el_tracker, self.win)
