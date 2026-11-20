@@ -1,5 +1,6 @@
 import time
 
+from ...config import PHOTODIODE_FRAMES
 from ...utils.asc import check_messages, read_messages
 from ...utils.start_trigger import wait_for_start
 from ..mock import MockLPT, MockTracker, TimingLog, summarize
@@ -82,6 +83,12 @@ class _FakeGenv:
     def get_input_key(self):
         return [_KeyInput(self.keys.pop(0))] if self.keys else []
 
+    def setup_image_display(self, width, height):
+        self.calls.append(("image_on", width, height))
+
+    def exit_image_display(self):
+        self.calls.append("image_off")
+
 
 class _Dummy:
     def __init__(self):
@@ -140,15 +147,54 @@ def test_summarize():
     timing("LOOPBACK_TTL_SENT", t - 0.0005, code=1)
     timing("START_TRIGGER", t, source="ttl")
     timing("FLASH_ON", t + 0.013)
-    timing("FLASH_OFF", t + 0.113)
+    timing("PHOTODIODE_OFF", t + 0.0463)
     timing("TARGET_ON", t + 0.2, code=6, x=1805, y=540)
     timing("LPT_OUT", t + 0.2003, code=6)
+    timing("PHOTODIODE_OFF", t + 0.2333)
     timing("TARGET_OFF", t + 1.2)
+    timing("TARGET_ON", t + 1.7, code=2, x=960, y=92)  # no pulse (no photodiode)
+    timing("TARGET_OFF", t + 2.7)
     timing("KEYS_TO_TRACKER", t + 1.3, keys="c")
     lines = summarize(timing)
     text = "\n".join(lines)
     assert lines[0] == "Start trigger: ttl (t=0)"
     assert "loopback TTL sent -> detected: 0.500 ms" in text
-    assert "photodiode flash: on at +13.000 ms, on for 100.0 ms" in text
-    assert "     6  1805   540    200.000      0.300   1000.0" in text
+    assert "photodiode flash: on at +13.000 ms, on for 33.3 ms" in text
+    assert "     6  1805   540    200.000      0.300    33.3   1000.0" in text
+    assert "     2   960    92   1700.000          -       -   1000.0" in text
+    assert f"photodiode pulse of {PHOTODIODE_FRAMES} frame(s), median 33.3 ms" in text
     assert "Keys that reached the tracker setup: c" in text
+
+
+def test_mock_tracker_menu():
+    """Keys are polled in setup mode before the targets; Escape leaves the setup."""
+    import pylink
+
+    timing = TimingLog()
+    genv = _FakeGenv(keys=[27])
+    tracker = MockTracker(_Dummy(), genv, timing, hold=0.02, gap=0, menu=0.05)
+    modes = []
+    genv.get_input_key = lambda: (
+        modes.append(tracker.getCurrentMode()),
+        [_KeyInput(genv.keys.pop(0))] if genv.keys else [],
+    )[1]
+    genv.tracker = tracker
+    tracker.doTrackerSetup()
+    assert genv.calls == ["setup", "exit"]
+    assert modes == [pylink.IN_SETUP_MODE]
+    assert tracker.getCurrentMode() == pylink.IN_TARGET_MODE
+
+
+def test_mock_tracker_camera_image():
+    """Enter in the setup menu starts the camera image; lost Enters are ignored."""
+    timing = TimingLog()
+    genv = _FakeGenv(keys=[13, 13, 13])
+    tracker = MockTracker(
+        _Dummy(), genv, timing, hold=0.01, gap=0, menu=0.1, lost_enters=1
+    )
+    genv.tracker = tracker
+    tracker.doTrackerSetup()
+    # first Enter lost, second starts the image, third is passed on but ignored
+    assert genv.calls[:3] == ["setup", ("image_on", 384, 320), "image_off"]
+    assert genv.calls.count(("image_on", 384, 320)) == 1
+    assert sum(call[0] == "draw" for call in genv.calls) == 9

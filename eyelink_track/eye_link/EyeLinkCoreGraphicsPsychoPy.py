@@ -30,6 +30,7 @@ import stimuli
 from PIL import Image, ImageDraw
 from psychopy import core, event, logging, visual
 from psychopy.tools.coordinatetools import pol2cart
+
 from ..utils.logs import logger
 
 # Show only critical log message in the console
@@ -54,7 +55,9 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         # self._trigger_port = None
         self._trigger = None
 
-        # Photodiode patch drawn with each calibration target (None = disabled)
+        # Photodiode patch, pulsed for _pd_frames frames at each target onset and at
+        # the start trigger (None = disabled). _pd_left counts the frames left in the
+        # current pulse.
         self._photodiode = None
         self._pd_frames = 2
         self._pd_left = 0
@@ -63,8 +66,14 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._t0 = None
         # Keys not passed to the tracker (e.g. repeated scanner trigger keys)
         self._ignored_keys = set()
+        # Keys pressed automatically once the tracker is in its setup menu
         self._setup_keys = []
         self._setup_keys_deadline = 0.0
+        self._setup_menu_since = None  # when the setup menu was first seen
+        self._setup_keys_tries = 0
+        self._setup_keys_last = 0.0  # when the keys were last pressed
+        self._setup_last_mode = None  # last tracker mode seen, for diagnostics
+        self._image_shown = False  # set when the tracker starts the camera image
         # Optional callable(event, t, **fields) logging display/trigger timings
         self._timing = None
 
@@ -248,11 +257,11 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         return lambda: port.readPin(pin)
 
     def setPhotodiode(self, size, corner="top-right", color=(1, 1, 1), frames=2):
-        """Draw a photodiode patch in a screen corner together with each target.
+        """Pulse a photodiode patch in a screen corner at each target onset.
 
         The patch is drawn in the same flip as the calibration/validation/drift-check
-        target (so it shares the flip with the TTL sent via callOnFlip) and disappears
-        when the target is erased.
+        target (so it shares the flip with the TTL sent via callOnFlip) and stays on
+        for ``frames`` frames, while the target stays on screen.
 
         Parameters
         ----------
@@ -262,7 +271,9 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             One of "top-left", "top-right", "bottom-left", "bottom-right". Must match
             where the sensor is mounted.
         color :
-            Patch color when the target is on screen (PsychoPy rgb, -1..1).
+            Patch color during the pulse (PsychoPy rgb, -1..1).
+        frames : int
+            Duration of the pulse, in frames (screen refreshes).
         """
         if not isinstance(frames, int) or frames < 1:
             raise ValueError(f"frames must be a positive integer, got {frames!r}.")
@@ -292,7 +303,10 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._pd_active = True
 
     def _draw_photodiode(self):
-        """Draw the patch if a pulse is running. Returns True if it was drawn."""
+        """Draw the patch into the back buffer if a pulse is running.
+
+        Returns True if the patch was drawn (one frame of the pulse used).
+        """
         if self._photodiode is None or self._pd_left <= 0:
             return False
         self._photodiode.draw()
@@ -306,7 +320,10 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             self._log_timing("PHOTODIODE_OFF", t)
 
     def _finish_photodiode_pulse(self, draw_content):
-        """Flip the rest of the pulse, then one frame without the patch."""
+        """Flip the remaining frames of the pulse, then one frame without the patch.
+
+        draw_content() redraws what stays on screen (e.g. the target) on each frame.
+        """
         if not self._pd_active:
             return
         while self._pd_left > 0:
@@ -318,7 +335,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._end_photodiode_pulse(time.perf_counter())
 
     def flashPhotodiode(self, message="START_PHOTODIODE"):
-        """Show the photodiode patch alone for duration seconds, if enabled.
+        """Pulse the photodiode patch alone on screen, if enabled.
 
         The message, with T_REL_MS if the time origin is set, is sent to the tracker
         right after the flip showing the patch.
@@ -349,26 +366,95 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
     def setIgnoredKeys(self, keys):
         """Set PsychoPy key names that are not passed to the tracker."""
         self._ignored_keys = set(keys)
-        
-    def pressKeysInSetup(self, keys, timeout=5.0):
-        """Press keys (PsychoPy names) as soon as the tracker is in its setup menu."""
+
+    def pressKeysInSetup(
+        self, keys, timeout=10.0, settle=0.3, retry_after=1.0, max_tries=3
+    ):
+        """Press keys (PsychoPy names) once the tracker is in its setup menu.
+
+        E.g. "return" shows the camera image and the menu without the experimenter
+        pressing Enter. The keys are pressed ``settle`` seconds after the setup menu
+        is first seen, and never while a calibration target is shown. If "return" is
+        among them, they are pressed again every ``retry_after`` seconds, up to
+        ``max_tries`` times, until the tracker starts the camera image. Pending keys
+        are dropped after ``timeout`` seconds.
+        """
         self._setup_keys = list(keys)
         self._setup_keys_deadline = time.perf_counter() + timeout
+        self._setup_settle = settle
+        self._setup_retry_after = retry_after
+        self._setup_max_tries = max_tries
+        self._setup_menu_since = None
+        self._setup_keys_tries = 0
+        self._setup_keys_last = 0.0
+        self._setup_last_mode = None
+        self._image_shown = False
+
+    @staticmethod
+    def _in_setup_menu(mode):
+        """Return True in the setup menu, False during targets or recording."""
+        busy = pylink.IN_TARGET_MODE | pylink.IN_DRIFTCORR_MODE | pylink.IN_RECORD_MODE
+        return bool(mode & pylink.IN_SETUP_MODE) and not mode & busy
 
     def _pop_setup_keys(self):
-        """Return the pending setup keys as (keycode, modifier) once in setup mode."""
+        """Return the setup keys to press now, as (keycode, modifier)."""
         if not self._setup_keys:
             return []
-        if self._setup_keys_deadline < time.perf_counter():
+        now = time.perf_counter()
+        keys = self._setup_keys
+        confirm = "return" in keys  # Enter must start the camera image
+        if confirm and self._image_shown:
+            logger.info("Camera image shown after %i Enter(s).", self._setup_keys_tries)
+            self._setup_keys = []
+            return []
+        if self._setup_keys_deadline < now:
             logger.warning(
-                "Tracker setup menu not reached, keys not pressed: %s", self._setup_keys
+                "Tracker setup menu not reached, keys %s pressed %i time(s) "
+                "(last tracker mode: %s).",
+                keys,
+                self._setup_keys_tries,
+                self._setup_last_mode,
             )
             self._setup_keys = []
             return []
-        if self._tracker.getCurrentMode() != pylink.IN_SETUP_MODE:
+        mode = self._tracker.getCurrentMode()
+        self._setup_last_mode = mode
+        if not self._in_setup_menu(mode):
+            self._setup_menu_since = None
             return []
-        keys, self._setup_keys = self._setup_keys, []
-        self._log_timing("SETUP_KEYS", time.perf_counter(), keys=",".join(keys))
+        if self._setup_menu_since is None:
+            self._setup_menu_since = now
+        if now - self._setup_menu_since < self._setup_settle:
+            return []  # let the tracker finish opening the menu
+        waiting = now - self._setup_keys_last < self._setup_retry_after
+        if self._setup_keys_tries and waiting:
+            return []  # wait for the camera image
+        if self._setup_keys_tries >= self._setup_max_tries:
+            logger.warning(
+                "Camera image not shown after %i Enter(s) (tracker mode: %s); press "
+                "Enter in the setup menu.",
+                self._setup_keys_tries,
+                mode,
+            )
+            self._setup_keys = []
+            return []
+        self._setup_keys_tries += 1
+        self._setup_keys_last = now
+        self._log_timing(
+            "SETUP_KEYS",
+            now,
+            keys=",".join(keys),
+            attempt=self._setup_keys_tries,
+            mode=mode,
+        )
+        logger.info(
+            "Pressed %s in the tracker setup (attempt %i, tracker mode %s).",
+            keys,
+            self._setup_keys_tries,
+            mode,
+        )
+        if not confirm:
+            self._setup_keys = []
         no_modifier = {"alt": False, "ctrl": False, "shift": False}
         return [(key, dict(no_modifier)) for key in keys]
 
@@ -808,6 +894,9 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
 
         The size is 384 x 320 pixels.
         """
+        if not self._image_shown:
+            self._image_shown = True
+            self._log_timing("CAMERA_IMAGE_ON", time.perf_counter())
         self.last_mouse_state = -1
         self._calibInst.autoDraw = True
         self._title.autoDraw = True

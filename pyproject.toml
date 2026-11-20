@@ -17,6 +17,7 @@ classifiers = [
 ]
 dependencies = [
   'click',
+  'evdev; sys_platform == "linux"',
   'numpy>=1.21,<2',
   'stimuli',
   'packaging',
@@ -74,6 +75,7 @@ test = [
 [project.scripts]
 eyelink_track = 'eyelink_track.commands.main:run'
 eyetrack_calibration = 'eyelink_track.commands.calibration:run'
+eyetrack_record = 'eyelink_track.commands.record:run'
 
 [project.urls]
 source = 'https://github.com/fcbg-platforms/eyelink-track'

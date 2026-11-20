@@ -15,6 +15,7 @@ import threading
 import time
 from pathlib import Path
 
+from ..config import PHOTODIODE_FRAMES
 from ..utils.logs import logger
 
 # Target positions of an HV9 calibration with the default EyeLink calibration area
@@ -155,7 +156,16 @@ class MockTracker:
     the tracker. Other calls go to the dummy connection.
     """
 
-    def __init__(self, tracker, genv, timing: TimingLog, hold=1.0, gap=0.5, menu=0.3) -> None:
+    def __init__(
+        self,
+        tracker,
+        genv,
+        timing: TimingLog,
+        hold=1.0,
+        gap=0.5,
+        menu=1.5,
+        lost_enters=0,
+    ) -> None:
         self._tracker = tracker
         self._genv = genv
         self._timing = timing
@@ -163,13 +173,9 @@ class MockTracker:
         self._gap = gap
         self._menu = menu
         self._in_menu = False
+        self._lost_enters = lost_enters  # Enters ignored, to test the retries
+        self._camera_image = False
         self._lines: list[str] = []
-        
-    def getCurrentMode(self) -> int:  # noqa: N802
-        """Return setup mode in the setup menu, target mode during the targets."""
-        import pylink
-
-        return pylink.IN_SETUP_MODE if self._in_menu else pylink.IN_TARGET_MODE
 
     def __getattr__(self, name):
         """Forward other calls to the dummy connection."""
@@ -203,6 +209,12 @@ class MockTracker:
         Path(dst).write_text("\n".join([header, *self._lines]) + "\n", encoding="utf-8")
         return 0
 
+    def getCurrentMode(self) -> int:  # noqa: N802
+        """Return setup mode in the setup menu, target mode during the targets."""
+        import pylink
+
+        return pylink.IN_SETUP_MODE if self._in_menu else pylink.IN_TARGET_MODE
+
     def doTrackerSetup(self, *args, **kwargs) -> None:  # noqa: N802, ARG002
         """Run a 9-point calibration in random order through the graphics env."""
         genv = self._genv
@@ -218,6 +230,9 @@ class MockTracker:
         self._in_menu = True
         go_on = self._poll_keys(self._menu)
         self._in_menu = False
+        if self._camera_image:
+            genv.exit_image_display()
+            self._camera_image = False
         if not go_on:  # Escape in the menu leaves the setup
             genv.exit_cal_display()
             return
@@ -228,6 +243,15 @@ class MockTracker:
             if not go_on or not self._poll_keys(self._gap):
                 break
         genv.exit_cal_display()
+
+    def _enter_in_menu(self) -> None:
+        """Start the camera image on Enter in the setup menu, as the Host does."""
+        if self._lost_enters > 0:
+            self._lost_enters -= 1
+            logger.info("Mock: Enter ignored (simulating a lost key press).")
+            return
+        self._camera_image = True
+        self._genv.setup_image_display(384, 320)
 
     def _poll_keys(self, duration: float) -> bool:
         """Poll the keys like the Host does. Return False on Escape."""
@@ -240,11 +264,13 @@ class MockTracker:
                 logger.info("Keys passed to the tracker: %s", ", ".join(names))
                 if 27 in codes:
                     return False
+                if self._in_menu and 13 in codes and not self._camera_image:
+                    self._enter_in_menu()
             time.sleep(0.01)
         return True
 
 
-def install_mock_tracker(eye_link, timing: TimingLog, hold=1.0, gap=0.5, menu=0.3):
+def install_mock_tracker(eye_link, timing: TimingLog, hold=1.0, gap=0.5, menu=1.5):
     """Replace the tracker connection of an Eyelink created with host_ip=None."""
     mock = MockTracker(eye_link.el_tracker, eye_link.genv, timing, hold, gap, menu)
     eye_link.el_tracker = mock
@@ -265,6 +291,22 @@ def summarize(timing: TimingLog) -> list[str]:
     i0 = next(k for k, row in enumerate(rows) if row[1] == "START_TRIGGER")
     source = rows[i0][2].get("source", "?")
     lines = [f"Start trigger: {source} (t=0)"]
+    if "detect_delay_ms" in rows[i0][2]:
+        lines.append(
+            f"  key event -> detected: {rows[i0][2]['detect_delay_ms']} ms "
+            "(kernel timestamp of the key)"
+        )
+    if "wallclock" in rows[i0][2]:
+        lines.append(f"  at {rows[i0][2]['wallclock']}")
+    rec = next((row for row in rows if row[1] == "RECORDING_START"), None)
+    if rec is not None:
+        lines.append(f"  recording started at {(rec[0] - t0) * 1000:+.1f} ms")
+        stop = next((row for row in rows if row[1] == "RECORDING_STOP"), None)
+        if stop is not None:
+            lines.append(
+                f"  recording stopped at {stop[0] - t0:+.3f} s "
+                f"({stop[0] - rec[0]:.3f} s recorded)"
+            )
     sent = [row for row in rows[:i0] if row[1] == "LOOPBACK_TTL_SENT"]
     if sent and source == "ttl":
         lines.append(
@@ -272,7 +314,7 @@ def summarize(timing: TimingLog) -> list[str]:
         )
     flash_on = first_after(i0, "FLASH_ON")
     if flash_on is not None:
-        flash_off = first_after(i0, "FLASH_OFF")
+        flash_off = first_after(i0, "PHOTODIODE_OFF")
         duration = (
             ""
             if flash_off is None
@@ -281,23 +323,33 @@ def summarize(timing: TimingLog) -> list[str]:
         lines.append(
             f"  photodiode flash: on at +{(flash_on[0] - t0) * 1000:.3f} ms{duration}"
         )
+    if not any(row[1] == "TARGET_ON" for row in rows):
+        return lines
     lines.append("Targets (stimulus PC clock, ms relative to the start trigger):")
     lines.append(
-        f"  {'code':>4} {'x':>5} {'y':>5} {'onset':>10} {'LPT call':>10} {'on for':>8}"
+        f"  {'code':>4} {'x':>5} {'y':>5} {'onset':>10} {'LPT call':>10} "
+        f"{'patch':>7} {'on for':>8}"
     )
-    lpt_delays = []
+    lpt_delays, pulses = [], []
     for k, (t, event, fields) in enumerate(rows):
         if event != "TARGET_ON":
             continue
         lpt = first_after(k, "LPT_OUT")
         off = first_after(k, "TARGET_OFF")
+        pd_off = first_after(k, "PHOTODIODE_OFF")
+        if pd_off is not None and off is not None and off[0] < pd_off[0]:
+            pd_off = None  # belongs to a later pulse
         lpt_ms = None if lpt is None else (lpt[0] - t) * 1000
         if lpt_ms is not None:
             lpt_delays.append(lpt_ms)
+        pulse_ms = None if pd_off is None else (pd_off[0] - t) * 1000
+        if pulse_ms is not None:
+            pulses.append(pulse_ms)
         code, x, y = (str(fields.get(key)) for key in ("code", "x", "y"))
         lines.append(
             f"  {code:>4} {x:>5} {y:>5} {(t - t0) * 1000:>10.3f} "
             f"{'-' if lpt_ms is None else f'{lpt_ms:.3f}':>10} "
+            f"{'-' if pulse_ms is None else f'{pulse_ms:.1f}':>7} "
             f"{'-' if off is None else f'{(off[0] - t) * 1000:.1f}':>8}"
         )
     if lpt_delays:
@@ -306,9 +358,25 @@ def summarize(timing: TimingLog) -> list[str]:
             f"delay): median {statistics.median(lpt_delays):.3f} ms, "
             f"max {max(lpt_delays):.3f} ms"
         )
-    auto = [row[2]["keys"] for row in rows if row[1] == "SETUP_KEYS"]
+    if pulses:
+        median = statistics.median(pulses)
+        lines.append(
+            f"  patch: photodiode pulse of {PHOTODIODE_FRAMES} frame(s), median "
+            f"{median:.1f} ms (max {max(pulses):.1f} ms), i.e. "
+            f"{median / PHOTODIODE_FRAMES:.1f} ms per frame"
+        )
+    auto = [row for row in rows if row[1] == "SETUP_KEYS"]
     if auto:
-        lines.append(f"Keys pressed automatically in the setup menu: {', '.join(auto)}")
+        image = next((row for row in rows if row[1] == "CAMERA_IMAGE_ON"), None)
+        result = (
+            "camera image not shown"
+            if image is None
+            else f"camera image shown at +{(image[0] - t0) * 1000:.0f} ms"
+        )
+        lines.append(
+            f"Pressed automatically in the setup menu: {auto[-1][2]['keys']} "
+            f"x{len(auto)} (first at +{(auto[0][0] - t0) * 1000:.0f} ms), {result}"
+        )
     keys = [row[2]["keys"] for row in rows if row[1] == "KEYS_TO_TRACKER"]
     if keys:
         lines.append(f"Keys that reached the tracker setup: {', '.join(keys)}")

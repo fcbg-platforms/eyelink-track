@@ -69,6 +69,30 @@ def screen_geometry_commands(
     return commands
 
 
+def detect_resolution(screen: int = 0) -> tuple[int, int]:
+    """Return the resolution of a screen, without opening a window."""
+    import pyglet
+
+    display_module = getattr(pyglet, "canvas", None) or pyglet.display
+    screens = display_module.get_display().get_screens()
+    if not 0 <= screen < len(screens):
+        raise ValueError(f"Screen {screen} not found ({len(screens)} screen(s)).")
+    return screens[screen].width, screens[screen].height
+
+
+def parse_resolution(text: str) -> tuple[int, int]:
+    """Parse a resolution such as '1920x1080'."""
+    try:
+        width, height = (int(value) for value in text.lower().split("x"))
+    except ValueError:
+        raise ValueError(
+            f"Resolution must look like 1920x1080, got {text!r}."
+        ) from None
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Resolution must be positive, got {text!r}.")
+    return width, height
+
+
 def screen_geometry_message(
     width_px: int,
     height_px: int,

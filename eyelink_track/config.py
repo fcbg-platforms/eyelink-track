@@ -27,10 +27,11 @@ CAL_TRIGGER_MAP = {
     (2, 2): 9,
 }
 
-# Photodiode patch (enabled with the --photodiode flag): drawn in the same flip as
-# each calibration/validation target and kept on screen until the target is erased.
-# Rising edge = target onset, falling edge = target offset. The corner must match
-# where the (masked) sensor is mounted on the screen.
+# Photodiode patch (enabled with the --photodiode flag): a short pulse of
+# PHOTODIODE_FRAMES frames at each trigger, i.e. at the start trigger
+# (START_PHOTODIODE) and in the same flip as each calibration/validation target and
+# its LPT code. The target itself stays on screen. Rising edge = trigger/target
+# onset. The corner must match where the (masked) sensor is mounted on the screen.
 PHOTODIODE_SIZE: int = 50  # side of the square patch, in pixels
 # one of "top-left", "top-right", "bottom-left", "bottom-right"
 PHOTODIODE_CORNER: str = "top-left"
@@ -49,6 +50,18 @@ START_KEY: str = "t"  # PsychoPy key name, e.g. "t", "5", "space"
 # The data pins 2-9 are outputs (calibration triggers). Set to None to disable TTL.
 START_TTL_PIN: int | None = 10
 START_TTL_ACTIVE_HIGH: bool = True  # trigger on a low->high edge (False: high->low)
+# eyetrack_record reads START_KEY directly from the keyboard devices (the task keeps
+# the focus). Physical keys, as a USB trigger box sends them: "5" is the 5 of the
+# top row or of the keypad, whatever the keyboard layout. RECORD_KEYBOARD restricts
+# this to one device, given by part of its name or its path (list them with
+# eyetrack_record --list-keyboards), e.g. so that the experimenter's keyboard cannot
+# start the run. None reads every keyboard.
+RECORD_KEYBOARD: str | None = None
+# Keys pressed automatically once the tracker setup opens after the start trigger,
+# replacing the experimenter's Enter: "return" shows the camera image and the setup
+# menu (C, V, O...). Pressed 0.3 s after the setup menu opens, never during a
+# calibration target; "return" is pressed again (up to 3 times, 1 s apart) until
+# the tracker starts the camera image. Empty tuple to disable.
 START_SETUP_KEYS: tuple[str, ...] = ("return",) # key which is used normally to access calibration by double enter
 
 # Recording file names. The EyeLink Host only accepts short names, so the file is

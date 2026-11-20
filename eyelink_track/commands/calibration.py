@@ -6,8 +6,11 @@ from pathlib import Path
 
 import click
 
+from ._rig import rig_option
+
 
 @click.command(name="calibration")
+@rig_option
 @click.option("--subject", help="Subject label, e.g. 01 (or sub-01).")
 @click.option("--session", help="Session label, e.g. 1 (or ses-1).")
 @click.option("--run", "run_index", help="Run index, e.g. 1 (or run-1).")

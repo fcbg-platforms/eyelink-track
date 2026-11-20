@@ -17,16 +17,16 @@ from ..config import (
     LPT_ADDRESS,
     PHOTODIODE_COLOR,
     PHOTODIODE_CORNER,
-    PHOTODIODE_SIZE,
     PHOTODIODE_FRAMES,
-    SCREEN_KWARGS,
-    START_KEY,
-    START_TTL_ACTIVE_HIGH,
-    START_TTL_PIN,
-    START_SETUP_KEYS,
+    PHOTODIODE_SIZE,
     SCREEN_DISTANCE_MM,
     SCREEN_HEIGHT_MM,
+    SCREEN_KWARGS,
     SCREEN_WIDTH_MM,
+    START_KEY,
+    START_SETUP_KEYS,
+    START_TTL_ACTIVE_HIGH,
+    START_TTL_PIN,
 )
 from ..utils._checks import check_type, ensure_int, ensure_path
 from ..utils.logs import logger
@@ -165,9 +165,6 @@ class Eyelink:
         self.el_tracker.sendCommand(f"link_event_filter = {link_event_flags}")
         self.el_tracker.sendCommand(f"link_sample_data = {link_sample_flags}")
 
-        # Choose a calibration type, H3, HV3, HV5, HV13
-        # (HV = horizontal/vertical)
-        #self.el_tracker.sendCommand("calibration_type = HV9")
         self.el_tracker.sendCommand("button_function 5 'accept_target_fixation'")
 
         # Step 4: set up a graphics environment for calibration
@@ -184,8 +181,7 @@ class Eyelink:
             "screen_pixel_coords = 0 0 " + f"{self.scn_width - 1} {self.scn_height - 1}"
         )
         self.el_tracker.sendCommand(el_coords)
-        
-                # Physical screen size and eye-to-screen distance (SCREEN_*_MM in config.py),
+        # Physical screen size and eye-to-screen distance (SCREEN_*_MM in config.py),
         # used by the tracker for degrees of visual angle
         for command in screen_geometry_commands(
             SCREEN_WIDTH_MM, SCREEN_HEIGHT_MM, SCREEN_DISTANCE_MM
@@ -279,7 +275,8 @@ class Eyelink:
             if self.wait_for_trigger() is None:
                 return False
             self.clear_screen()
-            self.genv.pressKeysInSetup(START_SETUP_KEYS) # Click to access the setup screen (enter manually normally)
+            # open the camera image and setup menu without waiting for Enter
+            self.genv.pressKeysInSetup(START_SETUP_KEYS)
         else:
             # Show the task instructions
             task_msg = "\nPress ENTER twice to display tracker menu."
@@ -343,6 +340,9 @@ class Eyelink:
             f"START_TRIGGER {source.upper()} T_REL_MS=0.000 WALLCLOCK={wallclock}"
         )
         self.t0 = t0
+        # Keys pressed while waiting (other than the start key) are still buffered by
+        # PsychoPy; drop them so they do not reach the tracker setup (e.g. 'o', 'c').
+        clearEvents()
         if self._timing is not None:
             self._timing("START_TRIGGER", t0, source=source)
         self.genv.setTimeZero(t0)
