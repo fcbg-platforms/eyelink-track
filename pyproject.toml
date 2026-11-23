@@ -4,7 +4,7 @@ requires = ['setuptools >= 64.0.0']
 
 [project]
 authors = [
-  {email = 'mathieu.scheltienne@fcbg.ch', name = 'Mathieu Scheltienne'},
+  { email = 'mathieu.scheltienne@fcbg.ch', name = 'Mathieu Scheltienne' },
 ]
 classifiers = [
   'License :: OSI Approved :: MIT License',
@@ -31,9 +31,9 @@ keywords = [
   'eyelink',
   'python',
 ]
-license = {file = 'LICENSE'}
+license = { file = 'LICENSE' }
 maintainers = [
-  {email = 'mathieu.scheltienne@fcbg.ch', name = 'Mathieu Scheltienne'},
+  { email = 'mathieu.scheltienne@fcbg.ch', name = 'Mathieu Scheltienne' },
 ]
 name = 'eyelink_track'
 readme = 'README.md'
@@ -151,5 +151,5 @@ name = "sr-research-pylink"
 url = "https://pypi.sr-support.com"
 
 [tool.uv.sources]
-sr-research-pylink = {index = "sr-research-pylink"}
-wxPython = {marker = "sys_platform == 'linux'", url = "https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl"}
+sr-research-pylink = { index = "sr-research-pylink" }
+wxPython = { marker = "sys_platform == 'linux'", url = "https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl" }
