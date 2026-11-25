@@ -21,6 +21,7 @@ dependencies = [
   'numpy>=1.21,<2',
   'stimuli',
   'packaging',
+  'psychtoolbox; sys_platform == "darwin"',
   'psutil',
   'psychopy',
   'qtpy',

@@ -53,9 +53,9 @@ START_TTL_ACTIVE_HIGH: bool = True  # trigger on a low->high edge (False: high->
 # eyetrack_record reads START_KEY directly from the keyboard devices (the task keeps
 # the focus). Physical keys, as a USB trigger box sends them: "5" is the 5 of the
 # top row or of the keypad, whatever the keyboard layout. RECORD_KEYBOARD restricts
-# this to one device, given by part of its name or its path (list them with
-# eyetrack_record --list-keyboards), e.g. so that the experimenter's keyboard cannot
-# start the run. None reads every keyboard.
+# this to one device, given by part of its name, or its path (Linux) or index (macOS)
+# (list them with eyetrack_record --list-keyboards), e.g. so that the experimenter's
+# keyboard cannot start the run. None reads every keyboard.
 RECORD_KEYBOARD: str | None = None
 # Keys pressed automatically once the tracker setup opens after the start trigger,
 # replacing the experimenter's Enter: "return" shows the camera image and the setup

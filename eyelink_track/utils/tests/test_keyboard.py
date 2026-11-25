@@ -5,6 +5,9 @@ import pytest
 
 from .. import keyboard as kb
 
+# evdev is read on Linux; on macOS the module reads keyboard_macos's HID queues
+pytestmark = pytest.mark.skipif(sys.platform == "darwin", reason="evdev: not macOS")
+
 ECODES = SimpleNamespace(
     EV_KEY=1,
     KEY_ESC=1,
