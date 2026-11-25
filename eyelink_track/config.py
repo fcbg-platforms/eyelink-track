@@ -53,16 +53,18 @@ START_TTL_ACTIVE_HIGH: bool = True  # trigger on a low->high edge (False: high->
 # eyetrack_record reads START_KEY directly from the keyboard devices (the task keeps
 # the focus). Physical keys, as a USB trigger box sends them: "5" is the 5 of the
 # top row or of the keypad, whatever the keyboard layout. RECORD_KEYBOARD restricts
-# this to one device, given by part of its name or its path (list them with
-# eyetrack_record --list-keyboards), e.g. so that the experimenter's keyboard cannot
-# start the run. None reads every keyboard.
+# this to one device, given by part of its name, or its path (Linux) or index (macOS)
+# (list them with eyetrack_record --list-keyboards), e.g. so that the experimenter's
+# keyboard cannot start the run. None reads every keyboard.
 RECORD_KEYBOARD: str | None = None
 # Keys pressed automatically once the tracker setup opens after the start trigger,
 # replacing the experimenter's Enter: "return" shows the camera image and the setup
 # menu (C, V, O...). Pressed 0.3 s after the setup menu opens, never during a
 # calibration target; "return" is pressed again (up to 3 times, 1 s apart) until
 # the tracker starts the camera image. Empty tuple to disable.
-START_SETUP_KEYS: tuple[str, ...] = ("return",) # key which is used normally to access calibration by double enter
+START_SETUP_KEYS: tuple[str, ...] = (
+    "return",
+)  # key which is used normally to access calibration by double enter
 
 # Recording file names. The EyeLink Host only accepts short names, so the file is
 # recorded under a random numeric name and renamed once downloaded:

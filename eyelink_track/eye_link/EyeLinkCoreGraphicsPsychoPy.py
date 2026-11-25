@@ -666,7 +666,7 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self._tracker.sendMessage(msg)
         print(msg)
 
-    def _get_trigger_for_position(self, x, y, grid=(3,3)):
+    def _get_trigger_for_position(self, x, y, grid=(3, 3)):
         if self._cal_trigger_map is not None:
             width, height = self._display.size
             n_rows, n_cols = grid
@@ -678,9 +678,8 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
             row = min(n_rows - 1, max(0, int(n_rows * y / self._h)))
 
             # Trigger values
-            return self._cal_trigger_map[(row,col)]
+            return self._cal_trigger_map[(row, col)]
         return None
-
 
     def getColorFromIndex(self, colorindex):
         """Return psychopy colors for elements in the camera image."""

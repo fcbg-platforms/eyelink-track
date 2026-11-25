@@ -9,6 +9,7 @@ the user in the ``input`` group).
 from __future__ import annotations
 
 import select
+import sys
 
 from .logs import logger
 
@@ -149,3 +150,7 @@ class GlobalKeyboard:
             except OSError:
                 pass
         self.devices = []
+
+
+if sys.platform == "darwin":  # no evdev: PsychToolbox's HID queues, same interface
+    from .keyboard_macos import GlobalKeyboard, list_keyboards  # noqa: F401, F811

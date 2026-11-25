@@ -163,9 +163,12 @@ eyetrack_record --subject 01 --session 1 --run 1 --task nback
 
 Requirements and tips:
 
-- Reading the keyboard devices requires the `evdev` package (installed with the
-  package) and your user in the `input` group:
-  `sudo usermod -aG input $USER`, then log out and back in.
+- Reading the keyboard devices requires, on Linux, the `evdev` package (installed
+  with the package) and your user in the `input` group:
+  `sudo usermod -aG input $USER`, then log out and back in. On macOS, it uses
+  PsychToolbox's HID keyboard queues (`psychtoolbox`, installed with the package)
+  and the terminal needs the Input Monitoring permission: System Settings > Privacy
+  & Security > Input Monitoring, then quit and reopen the terminal.
 - `eyetrack_record --list-keyboards` lists the readable keyboards. Set
   `RECORD_KEYBOARD` in `config.py` to the trigger box (part of its name) so that the
   experimenter's keyboard cannot start the run.
