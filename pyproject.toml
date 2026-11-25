@@ -19,12 +19,12 @@ dependencies = [
   'click',
   'evdev; sys_platform == "linux"',
   'numpy>=1.21,<2',
-  'stimuli',
   'packaging',
   'psutil',
   'psychopy',
   'qtpy',
   'sr-research-pylink==2.2.596.0',
+  'stimuli',
   'wxPython',
 ]
 description = 'Standalone eyelink calibration and recording with PsychoPy. '

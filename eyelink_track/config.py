@@ -62,7 +62,9 @@ RECORD_KEYBOARD: str | None = None
 # menu (C, V, O...). Pressed 0.3 s after the setup menu opens, never during a
 # calibration target; "return" is pressed again (up to 3 times, 1 s apart) until
 # the tracker starts the camera image. Empty tuple to disable.
-START_SETUP_KEYS: tuple[str, ...] = ("return",) # key which is used normally to access calibration by double enter
+START_SETUP_KEYS: tuple[str, ...] = (
+    "return",
+)  # key which is used normally to access calibration by double enter
 
 # Recording file names. The EyeLink Host only accepts short names, so the file is
 # recorded under a random numeric name and renamed once downloaded:
