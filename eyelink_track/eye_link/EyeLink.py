@@ -419,8 +419,11 @@ class Eyelink:
         except Exception:
             pass
         try:
-            self.win.flip()  # flush win.callOnFlip() and win.timeOnFlip()
-            self.win.close()
+            # a closed window is not flipped: on macOS, its flip() waits forever for a
+            # display refresh that never comes
+            if not self.win._closed:
+                self.win.flip()  # flush win.callOnFlip() and win.timeOnFlip()
+                self.win.close()
         except Exception:
             pass
         pylink.closeGraphics()
